@@ -1,0 +1,30 @@
+[Unit]
+Description=EXADCAM JT1078 live audio and intercom gateway
+After=network-online.target exadcam-gps.service
+Wants=network-online.target exadcam-gps.service
+
+[Service]
+Type=simple
+User=exad-listener
+Group=exad-listener
+WorkingDirectory=/opt/exadcam-listener
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/exadcam/listener.env
+ExecStart=/usr/local/bin/node src/audio.js
+Restart=always
+RestartSec=3
+TimeoutStopSec=15
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+LimitNOFILE=2048
+MemoryMax=1G
+
+[Install]
+WantedBy=multi-user.target

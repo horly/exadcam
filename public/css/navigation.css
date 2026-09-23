@@ -1,0 +1,14 @@
+body[data-view="map"] .monitoring-grid { grid-template-columns: minmax(0, 1fr); }
+body[data-view="map"] .camera-panel { display: none; }
+body[data-view="map"] .fleet-map { height: clamp(320px, 56vh, 650px); }
+body[data-module-pending="true"] .main-action { display: none; }
+.module-placeholder { display: flex; align-items: center; flex-direction: column; padding: 64px 24px; text-align: center; }
+.module-placeholder-icon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 24px; border: 1px solid #dce5f0; border-radius: 16px; background: #f3f6fa; color: #325780; }
+.module-placeholder-icon .icon { width: 28px; height: 28px; }
+.module-status { margin-bottom: 12px; color: #637e9e; font-size: 9px; font-weight: 650; letter-spacing: 1.5px; }
+.module-placeholder h2 { margin-bottom: 14px; font-size: 22px; font-weight: 650; color: #1d3655; }
+.module-placeholder p { max-width: 400px; margin-bottom: 24px; color: #78869c; font-size: 13px; line-height: 1.8; }
+.module-placeholder .text-action { color: #31557d; }
+@media (max-width: 575.98px) {
+    .module-placeholder { padding: 40px 20px; }
+}

@@ -1,0 +1,28 @@
+<?php
+
+return array_merge([
+    'client_search' => 'Name, model, vehicle…',
+    'client_description' => 'View dashcams and camera channels in your fleet.',
+    'fleet_scope' => 'Your fleet',
+    'fleet_scope_hint' => 'Your workspace only shows data from your assigned fleet.',
+    'no_access' => 'You do not have access to this module.',
+    'title' => 'Dashcams', 'description' => 'Register authorized devices and view their cameras.',
+    'registry' => 'Authorized devices', 'registry_hint' => 'Only registered and enabled dashcams may connect.',
+    'refresh' => 'Refresh', 'name' => 'Name', 'channels' => 'Channels', 'frame_rate' => 'Frames/s', 'add' => 'Register dashcam',
+    'loading' => 'Loading…', 'created' => 'Dashcam registered.', 'updated' => 'Authorization updated.',
+    'state' => 'Status', 'last_contact' => 'Last contact', 'actions' => 'Actions', 'disabled' => 'Disabled',
+    'online' => 'Recent contact', 'offline_short' => 'Waiting', 'disable' => 'Disable', 'enable' => 'Enable',
+    'empty' => 'No dashcam registered. Add its IMEI to authorize a connection.',
+    'identifiers' => 'Communication identifiers', 'channel' => 'Camera', 'live' => 'Watch live', 'close' => 'Close',
+    'live_hint' => 'Use Listen or Talk for vehicle audio. Video recordings are not yet available.',
+    'buffering' => 'Live video', 'play_required' => 'Video ready · press Play',
+    'waiting' => 'Live video', 'ready' => 'Playing live video', 'stopped' => 'The video session has ended.',
+    'reconnecting' => 'Live video · reconnecting automatically', 'paused' => 'Video paused',
+    'unavailable' => 'The service is unavailable or the camera did not respond. Try again shortly.',
+    'offline' => 'This dashcam is not connected to EXADCAM.', 'required' => 'Complete this field.',
+    'invalid_imei' => 'The IMEI must contain exactly 15 digits.', 'invalid_number' => 'Check the entered value.',
+    'alias_conflict' => 'This communication identifier is already assigned to a device.',
+    'confirm_disable' => 'Disable this dashcam and interrupt its connections?',
+    'admin_only' => 'Dashcam management and testing are currently limited to the superadmin.',
+    'browser_unsupported' => 'This browser does not support this video player.',
+], require __DIR__.'/dashcam_registry.php');

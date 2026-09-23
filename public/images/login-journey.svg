@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="320" viewBox="0 0 680 320" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="130" y1="106" x2="130" y2="270" gradientUnits="userSpaceOnUse"><stop stop-color="#7778b5"/><stop offset="1" stop-color="#c2b8da"/></linearGradient>
+    <linearGradient id="road" x1="165" y1="168" x2="150" y2="282" gradientUnits="userSpaceOnUse"><stop stop-color="#72758f"/><stop offset="1" stop-color="#323950"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="170%" height="170%"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#0e162d" flood-opacity=".24"/></filter>
+    <clipPath id="camera-clip"><rect x="42" y="99" width="340" height="183" rx="10"/></clipPath>
+    <clipPath id="map-clip"><rect x="298" y="18" width="337" height="217" rx="15"/></clipPath>
+  </defs>
+  <path d="M40 213C97 314 535 335 648 191M74 74C214 10 419 28 633 147" stroke="#8991bf" stroke-opacity=".13" stroke-dasharray="4 9"/>
+  <g filter="url(#shadow)">
+    <rect x="290" y="10" width="353" height="233" rx="22" fill="#3d4662" stroke="#56607c"/>
+    <g clip-path="url(#map-clip)">
+      <path fill="#e8ecf3" d="M298 18h337v217H298z"/>
+      <path d="m276 100 386-55M302 196 354 11M466 241 515 2M609 244 558 1M265 176 666 144" stroke="#fff" stroke-width="13"/>
+      <path d="m394 8-59 233M580 259 12-249M292 81l353 120" stroke="#d6deeb" stroke-width="3"/>
+      <path d="m617 3-59 82 47 44 43 1" fill="#d2e2e2"/>
+      <path d="m403 171 24-64 120-15 17 70" stroke="#c9c2ff" stroke-width="14" stroke-linejoin="round"/>
+      <path d="m403 171 24-64 120-15 17 70" stroke="#7564e8" stroke-width="5" stroke-linejoin="round"/>
+      <circle cx="403" cy="171" r="9" fill="#fff" stroke="#7564e8" stroke-width="4"/>
+      <circle cx="564" cy="162" r="21" fill="#7564e8" fill-opacity=".14"/>
+      <circle cx="564" cy="162" r="13" fill="#7564e8"/>
+      <path d="m564 154 5 13-5-2-5 2 5-13Z" fill="#fff"/>
+    </g>
+    <rect x="312" y="33" width="120" height="27" rx="7" fill="#fff"/>
+    <circle cx="327" cy="47" r="4" fill="#7564e8"/>
+    <path d="M339 44h60m-60 6h43" stroke="#bbc2d2" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="32" y="65" width="360" height="227" rx="19" fill="#25304b" stroke="#5a637d"/>
+    <circle cx="51" cy="83" r="3" fill="#ac9cfa"/>
+    <path d="M62 83h50" stroke="#b2b9cf" stroke-width="3" stroke-linecap="round"/>
+    <path d="M355 79h6v8h-6zM365 79h6v8h-6z" fill="#616d8c"/>
+    <g clip-path="url(#camera-clip)">
+      <path fill="url(#sky)" d="M42 99h340v183H42z"/>
+      <circle cx="292" cy="144" r="19" fill="#dbcbde"/>
+      <path d="m42 171 57-38 62 32 34-18 70 25 42-13 75 12v111H42Z" fill="#656c93"/>
+      <path d="m42 198 104-27 69 6 66-4 101 34v75H42Z" fill="#7a839e"/>
+      <path d="M180 171h26l107 111H81Z" fill="url(#road)"/>
+      <path d="M180 174 96 282m111-108 91 108" stroke="#d9d7e1" stroke-width="2"/>
+      <path d="m193 177 1 10m1 7 1 15m1 10 2 24m1 14 2 25" stroke="#e2dbea" stroke-width="3"/>
+      <path d="M63 190v-44m-12 6h27M325 199v-52m-13 8h28" stroke="#4f5876" stroke-width="2"/>
+      <rect x="206" y="200" width="26" height="20" rx="4" fill="#394561"/><path d="m210 199 3-9h12l4 9" fill="#454e70"/><path d="M211 205h16" stroke="#999cbb" stroke-width="5"/>
+      <path d="M72 123H59v13m293-13h13v13M59 246v13h13m293-13v13h-13" stroke="#e4e4f0" stroke-opacity=".8" stroke-width="2"/>
+      <path d="M193 195v-7h8m38 0h8v7m-54 28v7h8m38 0h8v-7" stroke="#c1f1d8" stroke-width="1.5"/>
+    </g>
+  </g>
+  <g transform="translate(431 254)">
+    <rect width="193" height="42" rx="12" fill="#35405c" stroke="#535d7b"/>
+    <rect x="13" y="11" width="20" height="20" rx="6" fill="#8471e5"/>
+    <path d="m19 21 3 3 5-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M45 17h93m-93 9h62" stroke="#aeb7d0" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>

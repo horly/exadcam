@@ -1,0 +1,28 @@
+<?php
+
+return array_merge([
+    'client_search' => 'Nom, modèle, véhicule…',
+    'client_description' => 'Retrouvez les dashcams de votre flotte et leurs caméras.',
+    'fleet_scope' => 'Votre flotte',
+    'fleet_scope_hint' => 'Votre espace affiche uniquement les données de votre flotte.',
+    'no_access' => 'Aucun accès accordé à ce module.',
+    'title' => 'Dashcams', 'description' => 'Enregistrez les équipements autorisés et consultez leurs caméras.',
+    'registry' => 'Équipements autorisés', 'registry_hint' => 'Seules les dashcams enregistrées et activées peuvent se connecter.',
+    'refresh' => 'Actualiser', 'name' => 'Nom', 'channels' => 'Canaux', 'frame_rate' => 'Images/s', 'add' => 'Enregistrer la dashcam',
+    'loading' => 'Chargement…', 'created' => 'Dashcam enregistrée.', 'updated' => 'Autorisation mise à jour.',
+    'state' => 'État', 'last_contact' => 'Dernier contact', 'actions' => 'Actions', 'disabled' => 'Désactivée',
+    'online' => 'Contact récent', 'offline_short' => 'En attente', 'disable' => 'Désactiver', 'enable' => 'Activer',
+    'empty' => 'Aucune dashcam enregistrée. Ajoutez son IMEI pour autoriser la connexion.',
+    'identifiers' => 'Identifiants de communication', 'channel' => 'Caméra', 'live' => 'Voir en direct', 'close' => 'Fermer',
+    'live_hint' => 'Utilisez Écouter ou Parler pour l’audio du véhicule. Les archives vidéo ne sont pas encore disponibles.',
+    'buffering' => 'Direct vidéo', 'play_required' => 'Vidéo prête · appuyez sur Lecture',
+    'waiting' => 'Direct vidéo', 'ready' => 'Vidéo en cours', 'stopped' => 'La session vidéo est terminée.',
+    'reconnecting' => 'Direct vidéo · reprise automatique', 'paused' => 'Vidéo en pause',
+    'unavailable' => 'Le service est indisponible ou la caméra n’a pas répondu. Réessayez dans quelques instants.',
+    'offline' => 'La dashcam n’est pas connectée au serveur EXADCAM.', 'required' => 'Renseignez ce champ.',
+    'invalid_imei' => 'L’IMEI doit contenir exactement 15 chiffres.', 'invalid_number' => 'Vérifiez la valeur saisie.',
+    'alias_conflict' => 'Cet identifiant de communication est déjà utilisé par un équipement.',
+    'confirm_disable' => 'Désactiver cette dashcam et interrompre ses connexions ?',
+    'admin_only' => 'La gestion et les essais des dashcams sont pour le moment réservés au superadmin.',
+    'browser_unsupported' => 'Ce navigateur ne prend pas en charge ce lecteur vidéo.',
+], require __DIR__.'/dashcam_registry.php');

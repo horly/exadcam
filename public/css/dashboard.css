@@ -1,0 +1,121 @@
+:root {
+    --exad-primary: #203d65;
+    --exad-primary-hover: #162f50;
+    --exad-chart-secondary: #7799bd;
+    --exad-ink: #20334c;
+    --exad-muted: #75859a;
+    --exad-border: #e3eaf2;
+    --exad-page: #f3f6fa;
+    --bs-primary: #203d65;
+    --bs-primary-rgb: 32, 61, 101;
+    --bs-link-color: #203d65;
+    --bs-link-hover-color: #162f50;
+}
+.btn-primary {
+    --bs-btn-bg: var(--exad-primary);
+    --bs-btn-border-color: var(--exad-primary);
+    --bs-btn-hover-bg: var(--exad-primary-hover);
+    --bs-btn-hover-border-color: var(--exad-primary-hover);
+    --bs-btn-active-bg: var(--exad-primary-hover);
+    --bs-btn-active-border-color: var(--exad-primary-hover);
+    --bs-btn-disabled-bg: #6e829d;
+    --bs-btn-disabled-border-color: #6e829d;
+    --bs-btn-focus-shadow-rgb: 32, 61, 101;
+}
+.main-action { min-height: 40px; padding: 11px 16px; box-shadow: 0 4px 10px #203d6514; }
+.dashboard-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.dashboard-map-action { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 10px 14px; background: #fff; border: 1px solid #d7e1ed; border-radius: 7px; color: #365678; font-size: 11px; font-weight: 600; }
+.dashboard-map-action:hover { background: #eaf0f7; border-color: #a7bcd5; color: #203d65; }
+.dashboard-map-action .icon { width: 15px; height: 15px; }
+body:not([data-view="overview"]) .dashboard-map-action { display: none; }
+.page-heading { margin-bottom: 24px; }
+.page-heading h1 { color: #1c344f; letter-spacing: -.8px; }
+.demo-notice { background: #eaf0f7; border-color: #dde6f1; color: #647b97; }
+.demo-badge { background: #d8e3f0; color: #466484; }
+.demo-notice button { color: #456385; }
+.metric-card { position: relative; padding: 18px 20px 16px; border-radius: 11px; box-shadow: 0 2px 5px #16315103; }
+.metric-heading { color: #6a7d94; font-size: 11px; font-weight: 500; }
+.metric-icon { width: 33px; height: 33px; border-radius: 9px; }
+.metric-number { margin-top: 7px; margin-bottom: 13px; font-size: 34px; font-weight: 700; color: #1e3858; }
+.metric-number > span { color: #8595a9; }
+.metric-bottom { color: #75879e; }
+.indigo { background: #eaf0f7; color: #43638a; }
+.mini-bar i { background: #8aa4c4; }
+.text-action, .events-footer, .camera-foot > a, .skip-link:focus { color: #466b97; }
+.text-action:hover, .events-footer:hover, .event-item:hover .event-copy strong { color: #203d65; }
+.vehicle-avatar { background: #eff4fa; border-color: #e1e8f2; color: #6d89ab; }
+.vehicle-avatar.avatar-offline { background: #f4f6f9; border-color: #e7edf3; color: #a1aebd; }
+.map-marker.is-selected { background: var(--exad-primary); box-shadow: 0 0 0 5px #203d6524, 0 3px 9px #203d652b; }
+.map-marker.is-selected span { color: var(--exad-primary); }
+.status-filter button.active { background: #e7eef7; color: #294d75; }
+.status-filter button.active span { background: #d4e1f0; color: #416388; }
+.table-camera-button { border-color: #dfe7f1; background: #f0f5fa; color: #58799f; }
+.table-camera-button:hover { background: #dce7f4; color: #203d65; }
+.vehicle-video-card:hover { border-color: #9db5d2; }
+.channel-switch button.active { color: #203d65; }
+.form-check-input:checked { background-color: #203d65; border-color: #203d65; }
+.form-check-input:focus, .form-select:focus { border-color: #8eaacd; box-shadow: 0 0 0 .2rem #203d651a; }
+.help-note { background: #edf2f8; color: #617c9c; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, .chart-data-details summary:focus-visible { outline-color: #7194bf; }
+.chart-data-details summary:focus-visible { outline: 2px solid #7194bf; outline-offset: 3px; }
+
+.dashboard-charts { display: grid; grid-template-columns: minmax(0, 1fr) 304px; gap: 20px; margin-bottom: 22px; }
+.dashboard-charts .panel { border-radius: 11px; }
+.chart-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 21px 22px 10px; }
+.chart-heading h2 { margin: 0; color: #233d5c; font-size: 13px; font-weight: 700; }
+.chart-heading p { margin: 7px 0 0; color: #8392a6; font-size: 10px; line-height: 1.5; }
+.chart-heading-icon { display: grid; place-items: center; width: 31px; height: 31px; flex: 0 0 31px; border-radius: 8px; background: #f0f4f9; color: #6a87a9; }
+.chart-heading-icon .icon { width: 17px; height: 17px; }
+.chart-period { display: flex; flex-shrink: 0; gap: 3px; padding: 3px; background: #f1f5f9; border: 1px solid #e8eef5; border-radius: 7px; }
+.chart-period button { min-height: 29px; min-width: 42px; padding: 5px 9px; border: 0; border-radius: 5px; background: transparent; color: #7b8ca2; font-size: 10px; font-weight: 600; }
+.chart-period button:hover { color: #203d65; }
+.chart-period button.active { background: #203d65; color: #fff; box-shadow: 0 2px 4px #203d651a; }
+.chart-period button:disabled { cursor: wait; }
+.chart-legend { display: flex; gap: 20px; padding: 9px 22px 0; font-size: 10px; color: #6f8199; }
+.chart-legend > span { display: inline-flex; align-items: center; gap: 7px; }
+.chart-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; flex: 0 0 7px; }
+.chart-dot-primary, .chart-dot-status-0 { background: #203d65; }
+.chart-dot-secondary, .chart-dot-status-1 { background: #7799bd; }
+.chart-dot-status-2 { background: #c5d0df; }
+.activity-chart { min-height: 250px; padding: 4px 10px 0; }
+.status-chart { min-height: 206px; margin: 4px 12px 0; }
+.status-chart-legend { display: grid; gap: 9px; margin: 0; padding: 0 25px 18px; }
+.status-chart-legend > div { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #72849b; }
+.status-chart-legend dt { display: flex; align-items: center; gap: 9px; font-weight: 500; }
+.status-chart-legend dd { margin: 0; color: #29486c; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.availability-panel { display: flex; flex-direction: column; }
+.chart-card-link { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: auto; padding: 14px 22px; border: 0; border-top: 1px solid #ebf0f5; background: #fafbfd; color: #45678d; font-size: 10px; font-weight: 600; }
+.chart-card-link:hover { background: #edf3fa; color: #203d65; }
+.chart-card-link .icon { width: 14px; height: 14px; }
+.chart-footnote { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; padding: 0 22px 14px; color: #8b9aae; font-size: 9px; }
+.chart-footnote > span:first-child { display: inline-flex; align-items: center; gap: 5px; }
+.chart-footnote .icon { width: 12px; height: 12px; }
+.chart-data-details { border-top: 1px solid #edf1f6; padding: 12px 22px; color: #6c829e; font-size: 10px; }
+.chart-data-details summary { width: fit-content; cursor: pointer; }
+.chart-data-details .table { margin-top: 12px; font-size: 11px; color: #617893; }
+.chart-data-details th { font-weight: 600; }
+.chart-error { margin: 0 22px 14px; color: #637c9b; font-size: 11px; }
+.apexcharts-tooltip { border-radius: 8px !important; box-shadow: 0 5px 20px #203d6512 !important; }
+
+@media (max-width: 1199.98px) {
+    .dashboard-charts { grid-template-columns: minmax(0, 1fr) 260px; }
+    .chart-heading { padding-right: 17px; padding-left: 17px; }
+    .activity-panel .chart-heading { flex-wrap: wrap; }
+}
+@media (max-width: 767.98px) {
+    .dashboard-charts { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .metric-card { padding: 15px 16px; }
+    .metric-number { font-size: 29px; }
+    .metric-heading { font-size: 10px; }
+    .dashboard-actions { width: 100%; }
+    .dashboard-actions .main-action { width: auto; }
+}
+@media (max-width: 575.98px) {
+    .chart-heading { padding: 18px 17px 10px; }
+    .activity-chart { min-height: 230px; padding-right: 3px; padding-left: 3px; }
+    .chart-legend { padding-left: 17px; gap: 15px; }
+    .chart-footnote, .chart-data-details { padding-left: 17px; padding-right: 17px; }
+    .chart-period button { min-height: 36px; min-width: 47px; }
+    .metric-icon { width: 27px; height: 27px; }
+    .metric-number > span { margin-left: 4px; }
+}

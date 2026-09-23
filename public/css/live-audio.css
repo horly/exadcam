@@ -1,0 +1,16 @@
+.live-audio-controls{margin:14px 0;padding:12px 14px;border:1px solid #dce5f2;border-radius:12px;background:#f8faff;color:#234366}
+.live-audio-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.live-audio-controls [hidden]{display:none!important}
+.live-audio-actions .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 12px;font-size:12px;font-weight:600;border:1px solid #d5e1f0;border-radius:8px;background:#fff;color:#234366}
+.live-audio-actions .icon{width:16px;height:16px;flex:none}
+.live-audio-actions .btn[aria-pressed=true]{background:#e5f6ef;border-color:#97d5bd;color:#17624b}
+.live-audio-actions .live-audio-stop{color:#a43131;border-color:#f1c5c5;background:#fff3f3}
+.live-audio-actions input[type=range]{width:90px;accent-color:#234366}
+.live-audio-controls p{font-size:11px;line-height:1.5;margin:8px 0 0}
+.live-audio-controls[data-state=talking] p{color:#ae2828;font-weight:700}
+.live-audio-controls[data-state=talking] p::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:#cf3333;margin-right:7px}
+.live-audio-timing{display:none;font-size:10px;color:#7b8ca2;margin-top:4px}
+.live-audio-controls[data-state=listening] .live-audio-timing,.live-audio-controls[data-state=talking] .live-audio-timing{display:block}
+.tracking-video-panel>.live-audio-controls{margin:0 0 12px}
+.live-audio-intercom-note{display:none;font-size:10px;color:#7b8ca2;margin-top:4px}
+.live-audio-controls[data-state=talking] .live-audio-intercom-note{display:block}

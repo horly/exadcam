@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420">
+<rect width="900" height="420" fill="#eff1ee"/>
+<defs><pattern id="blocks" width="102" height="77" patternUnits="userSpaceOnUse" patternTransform="rotate(-17 450 210)"><rect x="10" y="10" width="81" height="55" rx="4" fill="#e6e9e3" stroke="#dfe3dd"/><path d="M0 0H102M0 0V77" stroke="#d8ded8" stroke-width="11"/><path d="M0 0H102M0 0V77" stroke="#fff" stroke-width="8"/><path d="M50 10v55M10 36h81" stroke="#f7f8f5" stroke-width="5"/></pattern></defs>
+<rect width="900" height="420" fill="url(#blocks)"/>
+<path d="M600-50C640 20 720 50 770 95S800 120 900 105V-50Z" fill="#d7e5e3"/>
+<path d="M520-60C620 100 660 135 930 110" fill="none" stroke="#b7dae7" stroke-width="74"/>
+<path d="M516-62C616 100 658 137 930 113" fill="none" stroke="#c8e4ed" stroke-width="54"/>
+<path d="M-40 310 100 251 237 275 433 159 548 173 690 243 950 259" stroke="#d5dcdf" stroke-width="22" fill="none"/>
+<path d="M-40 310 100 251 237 275 433 159 548 173 690 243 950 259" stroke="#fff" stroke-width="17" fill="none"/>
+<path d="M-40 310 100 251 237 275 433 159 548 173 690 243 950 259" stroke="#f5e8cb" stroke-width="4" fill="none"/>
+<path d="M174 450 251 346 237 275 330 218 333 159 378 84 371-30" stroke="#d4dcdf" stroke-width="15" fill="none"/>
+<path d="M174 450 251 346 237 275 330 218 333 159 378 84 371-30" stroke="#fff" stroke-width="11" fill="none"/>
+<path d="M332 160 330 218 237 275 189 262" stroke="#c8d8e9" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<path d="M332 160 330 218 237 275 189 262" stroke="#6586ac" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+<path d="M60 39 160 12 194 76 100 100Z" fill="#d6e4d2" stroke="#cfdcc9"/><path d="m633 319 73-25 29 72-79 19Z" fill="#d6e4d2"/>
+<g font-family="Arial,sans-serif" font-size="11" fill="#9ea9a2" letter-spacing="2"><text x="156" y="143">SECTEUR OUEST</text><text x="379" y="120">SECTEUR NORD</text><text x="585" y="183">CENTRE</text><text x="705" y="328">SECTEUR EST</text><text x="307" y="373">DÉPÔT</text></g>
+</svg>

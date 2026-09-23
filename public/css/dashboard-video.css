@@ -1,0 +1,23 @@
+body[data-view="overview"] .dashboard-live-grid { grid-template-columns:minmax(0,1fr) minmax(460px,1fr); align-items:start; }
+.dashboard-single-grid { grid-template-columns:minmax(0,1fr); }
+.dashboard-camera-panel { min-width:0; overflow:visible; }
+.dashboard-camera-panel [hidden] { display:none !important; }
+.dashboard-camera-body { padding:16px; }
+.dashboard-camera-label { display:block; font-size:11px; font-weight:600; margin-bottom:7px; color:#607c9b; }
+.dashboard-camera-panel .searchable-select-panel { position:absolute; left:0; right:0; top:100%; z-index:5; box-shadow:0 12px 30px #18345120; }
+.dashboard-camera-panel .searchable-select-toggle { font-size:12px; min-height:40px; }
+.dashboard-camera-channels { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:18px; }
+.dashboard-camera-channel { min-width:0; }
+.dashboard-camera-channel h3 { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; margin:0 0 9px; color:#294e78; }
+.dashboard-camera-channel .icon { width:15px; height:15px; flex-shrink:0; }
+.dashboard-camera-screen { position:relative; aspect-ratio:16/9; background:#1b2d44; border-radius:9px; overflow:hidden; }
+.dashboard-camera-screen video { display:block; width:100%; height:100%; object-fit:contain; background:#1b2d44; }
+.dashboard-camera-panel[data-camera-model="JK114"] video { object-fit:fill; }
+.dashboard-camera-placeholder { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:12px; color:#9bb0c9; text-align:center; padding:12px; font-size:10px; pointer-events:none; }
+.dashboard-camera-placeholder > .icon { width:24px; height:24px; }
+.dashboard-camera-placeholder .btn { display:flex; align-items:center; gap:6px; color:#fff; background:#34577f; border:1px solid #57789e; font-size:11px; padding:7px 12px; pointer-events:auto; }
+.dashboard-camera-channel footer { display:flex; align-items:center; justify-content:space-between; gap:7px; min-height:38px; padding-top:8px; }
+.dashboard-camera-channel footer p { font-size:10px; line-height:1.5; color:#758ba5; margin:0; }
+.dashboard-camera-channel footer .btn { color:#55769a; border:1px solid #d4dfed; background:#fff; font-size:10px; padding:5px 8px; flex-shrink:0; }
+@media(max-width:1199.98px) { body[data-view="overview"] .dashboard-live-grid { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:575.98px) { .dashboard-camera-body { padding:13px; }.dashboard-camera-channels { grid-template-columns:minmax(0,1fr); gap:14px; }.dashboard-camera-channel footer { align-items:flex-start; flex-wrap:wrap; } }

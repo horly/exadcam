@@ -1,0 +1,23 @@
+.searchable-select { position: relative; }
+.searchable-select-native { position: absolute; opacity: 0; width: 1px !important; height: 1px !important; min-height: 0 !important; padding: 0 !important; pointer-events: none; }
+.searchable-select-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 41px; padding: 10px 12px; border: 1px solid #dfe7f1; border-radius: 7px; background: #fbfcfe; color: #8599b1; text-align: left; font: inherit; font-size: 12px; }
+.searchable-select-toggle > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.searchable-select-toggle.has-value { color: #375577; }
+.searchable-select-toggle:focus-visible, .searchable-select.is-open .searchable-select-toggle { outline: 0; border-color: #8ba9cc; box-shadow: 0 0 0 3px #203d650c; }
+.searchable-select-toggle:disabled { background: #f2f5f9; color: #97a7bb; cursor: not-allowed; }
+.searchable-select:has(.is-invalid) .searchable-select-toggle { border-color: #d67b82; }
+.searchable-select:has(.is-invalid) + .invalid-feedback { display: block; }
+.searchable-select-panel { margin-top: 6px; padding: 10px; border: 1px solid #dce6f2; border-radius: 8px; background: #fff; box-shadow: 0 6px 18px #203d650a; }
+.searchable-select-panel[hidden], .searchable-select-empty[hidden] { display: none !important; }
+.searchable-select-search { width: 100%; padding: 10px 12px; border: 1px solid #dce6f2; border-radius: 6px; background: #f7f9fc; color: #375577; font: inherit; font-size: 12px; }
+.searchable-select-search:focus { outline: 2px solid #a9c0dc; outline-offset: 1px; }
+.searchable-select-options { display: grid; gap: 3px; max-height: 190px; overflow-y: auto; padding-top: 6px; overscroll-behavior: contain; }
+.searchable-select-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 10px 12px; text-align: left; background: #fff; border: 1px solid transparent; border-radius: 6px; color: #365475; }
+.searchable-select-option strong, .searchable-select-option small { display: block; overflow-wrap: anywhere; }
+.searchable-select-option strong { font-size: 12px; font-weight: 600; }
+.searchable-select-option small { color: #8195ae; font-size: 10px; margin-top: 3px; }
+.searchable-select-option:hover, .searchable-select-option:focus-visible { background: #f3f7fc; border-color: #c6d7ec; outline: 0; }
+.searchable-select-option.is-selected { background: #edf3fb; border-color: #b9cce4; }
+.searchable-select-empty { color: #8195ae; font-size: 12px; text-align: center; padding: 15px 8px 5px; margin: 0; }
+.registry-filters { flex-wrap: wrap; }
+@media(max-width: 767px) { .registry-filters > .users-primary { margin-left: auto; } }
