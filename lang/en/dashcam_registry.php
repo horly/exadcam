@@ -25,7 +25,7 @@ return [
     'communication_hint' => 'Copy the 12 digits of the “SIM Number” field from CarAssist, including the leading zero. Each camera has its own identifier, separate from its IMEI.',
     'invalid_identifier' => 'The identifier must contain exactly 12 digits.',
     'protocol_hint' => 'Select the same year as in the camera configuration. This form does not remotely change the device settings.',
-    'es_protocol_hint' => 'The ES500-603 profile uses TCP / JT808 2013. The year is fixed for this model.',
+    'es_protocol_hint' => 'The 4G SmartVision JT808/1078 profile uses TCP / JT808 2013. The year is fixed for this model.',
     'vehicle' => 'Vehicle', 'fleet' => 'Fleet', 'assignment' => 'Vehicle assignment',
     'choose_fleet' => 'Choose a fleet', 'choose_vehicle' => 'Choose a vehicle', 'choose' => 'Choose…',
     'assignment_hint' => 'The fleet is determined automatically from the selected vehicle.',

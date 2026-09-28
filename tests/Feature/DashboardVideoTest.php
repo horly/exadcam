@@ -25,7 +25,7 @@ it('renders real searchable vehicle choices within the admin fleet without hardw
     $options = $response->viewData('dashboardVideo')->all();
     expect($options)->toHaveCount(1);
     expect($options[0])->toBe(['id' => $this->car->id, 'label' => 'Own live vehicle · LIVE-01 · Own video fleet',
-        'device_id' => $this->camera->id, 'model' => 'ES500-603', 'channels' => 2,
+        'device_id' => $this->camera->id, 'channels' => 2, 'video_fit' => 'contain',
         'status' => 'En attente de connexion', 'connection' => 'pending', 'last_seen_at' => null]);
 });
 

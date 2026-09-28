@@ -1,4 +1,6 @@
 import net from 'node:net';
+import { gpsKeepAliveOptions } from './transport-policy.js';
+import { backendCall, isTemporaryBackendError } from './backend-recovery.js';
 import { pathToFileURL } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { Frames808, encode808, position808, liveRequest, audioCapabilities } from './protocol.js';
@@ -9,7 +11,10 @@ export function startGps() {
     const port = Number(process.env.GPS_PORT || 7808);
     const server = net.createServer(socket => {
         if (sockets.size >= 512) return socket.destroy();
-        socket.setNoDelay(true); socket.setKeepAlive(true, 30000); socket.setTimeout(15000);
+        // Cellular setup can deliver the first JT808 frame after 15–20 seconds.
+        // Keep a bounded minute for admission, independently of later traffic.
+        const handshakeTimeout = 60000;
+        socket.setNoDelay(true); socket.setKeepAlive(true, 30000); socket.setTimeout(handshakeTimeout);
         let device = null, identity = null, authenticated = false, serial = 0, queued = 0, checked = 0, lastEvent = 0;
         let rateAt = performance.now(), messages = 0, chain = Promise.resolve(), authorizationPending = false;
         let closing = false, closeReason = null, received = 0, lastMessage = null, pacedWindows = 0, lastPacingLog = -Infinity;
@@ -27,16 +32,44 @@ export function startGps() {
         const ack = (message, result = 0) => {
             const body = Buffer.alloc(5); body.writeUInt16BE(message.serial); body.writeUInt16BE(message.id, 2); body[4] = result; send(0x8001, body);
         };
-        const authorize = async () => {
-            stopped.signal.throwIfAborted();
-            const current = await registry(identity.version, identity.terminal);
-            stopped.signal.throwIfAborted();
-            if (device && (current.id !== device.id || !safeEqual(current.auth_token, device.auth_token))) throw new Error('Device authorization changed');
-            device = current; checked = Date.now();
+        let authorization = null;
+        const authorize = () => {
+            // Timer, telemetry and media requests share a single in-flight check.
+            // Never let an older concurrent response restore a revoked identity.
+            if (!authorization) authorization = (async () => {
+                stopped.signal.throwIfAborted();
+                const current = await backendCall(() => registry(identity.version, identity.terminal));
+                stopped.signal.throwIfAborted();
+                if (device && (current.id !== device.id || !safeEqual(current.auth_token, device.auth_token))) throw new Error('Device authorization changed');
+                device = current; checked = Date.now();
+            })().finally(() => { authorization = null; });
+            return authorization;
         };
         const ingest = async position => {
-            await event({ device_id: device.id, protocol: identity.version, ip: socket.remoteAddress.replace(/^::ffff:/, ''), position });
+            await backendCall(() => event({ device_id: device.id, protocol: identity.version, ip: socket.remoteAddress.replace(/^::ffff:/, ''), position }));
             lastEvent = Date.now();
+        };
+        let lastBackendLog = -Infinity;
+        const retainOnBackendOutage = error => {
+            if (!authenticated || !isTemporaryBackendError(error)) return false;
+            if (performance.now() - lastBackendLog >= 30000) {
+                log('gps_backend_unavailable', { device_id: device.id, reason: error.message });
+                lastBackendLog = performance.now();
+            }
+            return true;
+        };
+        let presencePending = false;
+        const touchPresence = () => {
+            if (presencePending || closing || socket.destroyed || Date.now() - lastEvent <= 10000) return;
+            // Presence is a consequence of an authenticated frame, not part of
+            // the protocol handshake. Do not hold authentication/heartbeat ACKs
+            // behind a database write (the camera may time out before it ends).
+            // Coalesce bursts; never queue retries or invent traffic on a timer.
+            presencePending = true;
+            ingest(null).catch(error => {
+                if (closing || socket.destroyed) return;
+                if (!retainOnBackendOutage(error)) disconnect(error.message);
+            }).finally(() => { presencePending = false; });
         };
         let capabilityRequest = null, capabilities = null, capabilitiesAt = 0;
         const session = {
@@ -77,6 +110,12 @@ export function startGps() {
             messageTypes[lastMessage] = (messageTypes[lastMessage] || 0) + 1;
             if (identity && (identity.terminal !== message.terminal || identity.version !== message.version)) throw new Error('Identity changed on connection');
             identity = { terminal: message.terminal, version: message.version };
+            // A heartbeat only acknowledges this already authenticated transport.
+            // Periodic revalidation still closes revoked devices; telemetry and
+            // outbound commands retain their authorization/persistence checks.
+            if (authenticated && message.id === 0x0002 && !message.fragmented) {
+                ack(message); touchPresence(); return;
+            }
             if (!device || Date.now() - checked > 5000) {
                 try { await authorize(); } catch (error) {
                     if (message.id === 0x0100 && error.status === 404) {
@@ -104,19 +143,36 @@ export function startGps() {
                 }
                 if (!safeEqual(supplied, device.auth_token)) { ack(message, 1); return finish('authentication_failed'); }
                 const previous = sessions.get(device.id); if (previous && previous !== session) previous.disconnect('replaced_by_new_connection');
-                authenticated = true; sessions.set(device.id, session); socket.setTimeout(180000);
-                await ingest(null); ack(message); log('device_authenticated', { device_id: device.id, protocol: message.version }); return;
+                authenticated = true; sessions.set(device.id, session);
+                // The legacy ES500-603 profile includes SmartVision/CarAssist
+                // cameras. Their quiet intervals can exceed three minutes. Retain
+                // authenticated transport; TCP keepalive, peer closure and the
+                // periodic registry check still detect loss or revoked access.
+                // Silence never generates telemetry or refreshes last_seen_at.
+                socket.setTimeout(device.model === 'ES500-603' ? 0 : 180000);
+                // Probe quiet cellular links early, but allow widely spaced
+                // retries during a network interruption. This is TCP-only;
+                // it does not send camera commands or fabricate presence.
+                socket.setKeepAlive(...gpsKeepAliveOptions(device.model));
+                ack(message); touchPresence(); log('device_authenticated', { device_id: device.id, protocol: message.version }); return;
             }
             if (!authenticated) { ack(message, 1); return finish('authentication_required'); }
             if (message.id === 0x0001) {
                 if (message.body.length !== 5) throw new Error('Invalid command acknowledgement');
                 const key = message.body.readUInt16BE(0), command = commands.get(key);
-                if (command && command.id === message.body.readUInt16BE(2)) {
-                    if (message.body[4] === 0 && command.replyId !== 0x0001) return;
+                if (command && command.id === message.body.readUInt16BE(2)
+                    && !(message.body[4] === 0 && command.replyId !== 0x0001)) {
                     clearTimeout(command.timer); commands.delete(key);
                     if (message.body[4] === 0) command.resolve({ acknowledged: true });
-                    else command.reject(new Error('Device rejected command'));
+                    else {
+                        const result = message.body[4];
+                        log('command_rejected', {device_id:device.id, command:'0x'+command.id.toString(16), sequence:key, result});
+                        command.reject(Object.assign(new Error('Device rejected command'), {status:422,code:'device_rejected',result}));
+                    }
                 }
+                // The camera already answered: a slow presence write must not
+                // turn an accepted live/intercom command into a command timeout.
+                touchPresence();
                 return;
             }
             if (message.id === 0x1003) {
@@ -126,7 +182,9 @@ export function startGps() {
                     if (pending) { clearTimeout(pending[1].timer); commands.delete(pending[0]); pending[1].resolve(capabilities); }
                     ack(message);
                     log('audio_capabilities', {device_id:device.id,...capabilities});
+                    touchPresence();
                 } catch (error) {
+                    if (error.backendFailure) throw error;
                     if (pending) { clearTimeout(pending[1].timer); commands.delete(pending[0]); pending[1].reject(error); }
                     ack(message,1);
                 }
@@ -151,10 +209,6 @@ export function startGps() {
                 if (offset !== message.body.length) throw new Error('Unexpected batch suffix');
                 ack(message); return;
             }
-            if (message.id === 0x0002) {
-                if (Date.now() - lastEvent > 10000) await ingest(null);
-                ack(message); return;
-            }
             ack(message, 3); // Never pretend that an unsupported command was processed.
         };
         socket.on('data', chunk => {
@@ -164,7 +218,19 @@ export function startGps() {
             socket.pause();
             queued += chunk.length;
             if (queued > 65536) return disconnect('queue_limit');
-            chain = chain.then(async () => { for (const message of frames.push(chunk)) { if (socket.destroyed || closing) break; await handle(message); } })
+            chain = chain.then(async () => {
+                for (const message of frames.push(chunk)) {
+                    if (socket.destroyed || closing) break;
+                    try { await handle(message); }
+                    catch (error) {
+                        if (!retainOnBackendOutage(error)) throw error;
+                        // Do not confirm persistence of telemetry that the backend
+                        // rejected. Keep this authenticated transport for recovery;
+                        // continue processing other frames from the same TCP read.
+                        ack(message, 1);
+                    }
+                }
+            })
                 .catch(error => {
                     if (stopped.signal.aborted) return;
                     log('gps_rejected', { terminal: identity?.terminal, reason: error.message });
@@ -175,9 +241,13 @@ export function startGps() {
         const authorizationTimer = setInterval(() => {
             if (!authenticated || authorizationPending || closing || socket.destroyed) return;
             authorizationPending = true;
-            chain = chain.then(authorize).catch(error => disconnect(error.message)).finally(() => { authorizationPending = false; });
+            authorize().catch(error => {
+                // 403/404, identity changes and protocol errors remain fatal.
+                // A brief PHP/Apache outage is not a device revocation.
+                if (!retainOnBackendOutage(error)) disconnect(error.message);
+            }).finally(() => { authorizationPending = false; });
         }, 5000);
-        const handshakeTimer = setTimeout(() => { if (!authenticated) disconnect('handshake_timeout'); }, 20000);
+        const handshakeTimer = setTimeout(() => { if (!authenticated) disconnect('handshake_timeout'); }, handshakeTimeout);
         socket.on('timeout', () => disconnect('idle_timeout'));
         socket.on('error', error => disconnect(error.code || 'socket_error'));
         socket.on('end', () => { closeReason ??= 'peer_closed'; });

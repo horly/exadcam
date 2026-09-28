@@ -14,3 +14,6 @@
 .tracking-video-panel>.live-audio-controls{margin:0 0 12px}
 .live-audio-intercom-note{display:none;font-size:10px;color:#7b8ca2;margin-top:4px}
 .live-audio-controls[data-state=talking] .live-audio-intercom-note{display:block}
+
+.live-audio-level{display:flex;align-items:center;gap:8px;font-size:11px;margin-top:8px}
+.live-audio-level meter{width:110px;height:12px;accent-color:#278364}

@@ -7,15 +7,21 @@ import { pathToFileURL } from 'node:url';
 import { Frames1078, MediaFrames, decodeBcd } from './protocol.js';
 import { registry, post, log, internalServer, reply } from './common.js';
 import {AudioFrames} from './audio-codec.js';
+import {videoMuxerArgs, videoStartupBuffer} from './video-profile.js';
+import { removeMediaDirectory } from './media-cleanup.js';
 
 export function startVideo() {
     const streams = new Map(), leases = new Map(), sockets = new Set(), starting = new Map();
     const conversations=new Map();
+    const intercomBlocks = (id,channel) => {
+        const owner=conversations.get(id);
+        return owner?.expires>Date.now() && (owner.allChannels || channel===1);
+    };
     const root = path.resolve(process.env.VIDEO_STORAGE || '/var/lib/exadcam-media');
     fs.mkdirSync(root, { recursive: true, mode: 0o750 });
     // Reclaim only our own UUID directories after a service restart.
     for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
-        if (entry.isDirectory() && /^[a-f0-9-]{36}$/.test(entry.name)) fs.rmSync(path.join(root, entry.name), { recursive: true, force: true });
+        if (entry.isDirectory() && /^[a-f0-9-]{36}$/.test(entry.name)) void removeMediaDirectory(root, entry.name);
     }
     const gps = (route, data) => post(`${process.env.GPS_API_URL || 'http://127.0.0.1:3001'}${route}`, data);
     const stop = async (stream, reason = 'closed') => {
@@ -29,25 +35,16 @@ export function startVideo() {
             const timer = setTimeout(() => { if (stream.process.exitCode === null) stream.process.kill('SIGKILL'); }, 2000);
             timer.unref();
         }
-        await gps('/live/stop', { device_id: stream.device.id, channel: stream.channel }).catch(() => {});
-        const target = path.resolve(root, stream.id);
-        if (path.dirname(target) === root && /^[a-f0-9-]{36}$/.test(stream.id)) fs.rmSync(target, { force: true, recursive: true });
+        // ES500 replaces AV with intercom itself. A preceding AV Stop can also
+        // disable its audio path; reserve/drain locally and let 0x9101 switch it.
+        if (!stream.startRejected && !(reason === 'intercom' && stream.device.model === 'ES500-603')) await gps('/live/stop', { device_id: stream.device.id, channel: stream.channel }).catch(() => {});
+        await removeMediaDirectory(root, stream.id);
         log('video_stopped', { device_id: stream.device.id, channel: stream.channel, reason });
     };
     const spawnMuxer = stream => {
         const directory = path.join(root, stream.id);
         fs.mkdirSync(directory, { recursive: true, mode: 0o750 });
-        const child = spawn(process.env.FFMPEG_PATH || '/usr/bin/ffmpeg', [
-            '-hide_banner', '-loglevel', 'warning', '-nostdin', '-fflags', '+genpts',
-            '-probesize', '32768', '-analyzeduration', '1000000', '-r', String(stream.device.frame_rate), '-f', 'h264', '-i', 'pipe:0',
-            '-map', '0:v:0', '-c:v', 'copy', '-an',
-            // Opt-in for verified I/P-only devices whose raw H.264 has no usable timing.
-            // Keep the compressed image data; reconstruct timestamps at the configured rate.
-            ...(stream.device.normalize_video_timestamps ? ['-bsf:v', `setts=ts=N/(${stream.device.frame_rate}*TB)`] : []),
-            '-f', 'hls', '-hls_time', '2', '-hls_list_size', '20',
-            '-hls_flags', 'delete_segments+temp_file+omit_endlist', '-hls_delete_threshold', '5',
-            '-hls_segment_filename', path.join(directory, 'segment-%06d.ts'), path.join(directory, 'index.m3u8'),
-        ], { stdio: ['pipe', 'ignore', 'pipe'] });
+        const child = spawn(process.env.FFMPEG_PATH || '/usr/bin/ffmpeg', videoMuxerArgs(stream.device, directory), { stdio: ['pipe', 'ignore', 'pipe'] });
         stream.process = child;
         let diagnostic = '';
         child.stderr.on('data', chunk => { diagnostic = (diagnostic + chunk.toString()).slice(-1500); });
@@ -59,11 +56,11 @@ export function startVideo() {
         return child;
     };
     const create = async (id, channel) => {
-        if(channel===1&&conversations.get(id)?.expires>Date.now())throw Object.assign(Error('Intercom active'),{status:409});
+        if(intercomBlocks(id,channel))throw Object.assign(Error('Intercom active'),{status:409});
         const device = await registry('id', id);
         if (!Number.isInteger(channel) || channel < 1 || channel > device.channels) throw new Error('Invalid channel');
         await gps('/status', { device_id: id });
-        if(channel===1&&conversations.get(id)?.expires>Date.now())throw Object.assign(Error('Intercom active'),{status:409});
+        if(intercomBlocks(id,channel))throw Object.assign(Error('Intercom active'),{status:409});
         const key = `${device.video_terminal_id}:${channel}`;
         if (starting.has(key)) return starting.get(key);
         if (streams.has(key)) return streams.get(key);
@@ -72,7 +69,19 @@ export function startVideo() {
             const stream = { id: randomUUID(), key, device, channel, created: Date.now(), checked: Date.now(), lastPacket: Date.now(), closed: false, frames: new MediaFrames(), audioFrames:new AudioFrames(),audioQueued:0, audioChain:Promise.resolve(), bytes: 0 };
             streams.set(key, stream);
             try { await gps('/live/start', { device_id: id, channel }); }
-            catch (error) { await stop(stream, 'start_failed'); throw error; }
+            catch (error) {
+                // Some devices send media without acknowledging 0x9101 promptly.
+                // Keep the already-authorized request during the existing 30 s
+                // media deadline instead of sending Stop and starting over.
+                if (error.status === 503 || ['TimeoutError','AbortError'].includes(error.name)) {
+                    log('video_start_ack_delayed', { device_id: id, channel });
+                } else {
+                // A refused command did not start our stream. Sending 0x9102 here
+                // can stop a channel already owned by another platform.
+                stream.startRejected = error.code === 'device_rejected';
+                await stop(stream, 'start_failed'); throw error;
+                }
+            }
             log('video_requested', { device_id: id, channel });
             return stream;
         })();
@@ -176,11 +185,13 @@ export function startVideo() {
             if(url==='/audio/talk-start'){
                 const previous=conversations.get(id);
                 if(previous&&previous.id!==lease&&previous.expires>Date.now())return reply(res,409,{error:'Intercom busy'});
-                conversations.set(id,{id:lease,expires:Date.now()+20000});
-                // Await an in-flight video request before closing it, so it cannot
-                // replace the audio connection after the microphone is activated.
-                for(const [key,pending] of starting)if(key===current?.key)await pending.catch(()=>{});
-                if(current)await stop(current,'intercom');
+                const device=await registry('id',id);
+                const allChannels=device.model==='ES500-603';
+                conversations.set(id,{id:lease,expires:Date.now()+20000,allChannels});
+                const affected=[...streams.values()].filter(s=>s.device.id===id&&(allChannels||s.channel===1));
+                // Reserve first, then drain every command already in flight.
+                await Promise.all(affected.map(s=>starting.get(s.key)?.catch(()=>{})));
+                await Promise.all(affected.map(s=>stop(s,'intercom')));
                 return reply(res,200,{reserved:true});
             }
             if(url==='/audio/keepalive'){
@@ -203,7 +214,7 @@ export function startVideo() {
             const stream = await create(Number(data.device_id), Number(data.channel));
             const leaseId = randomUUID();
             leases.set(leaseId, { stream, expires: Date.now() + 60000 });
-            return reply(res, 201, { lease_id: leaseId, url: `/live-media/${leaseId}/index.m3u8`, status: 'waiting' });
+            return reply(res, 201, { lease_id: leaseId, url: `/live-media/${leaseId}/index.m3u8`, status: 'waiting', startup_buffer_seconds: videoStartupBuffer(stream.device) });
         }
         const match = url.match(/^\/sessions\/([a-f0-9-]{36})\/(keepalive|stop)$/);
         const lease = match && leases.get(match[1]);
@@ -243,7 +254,11 @@ export function startVideo() {
                 try {
                     const current = await registry('id', stream.device.id);
                     if (current.video_terminal_id !== stream.device.video_terminal_id || stream.channel > current.channels || Boolean(current.normalize_video_timestamps) !== Boolean(stream.device.normalize_video_timestamps) || current.frame_rate !== stream.device.frame_rate) throw new Error('Registry changed');
-                    await gps('/status', { device_id: stream.device.id });
+                    // The established JT1078 socket is a separate live connection.
+                    // Losing JT808 must not discard media that is still arriving.
+                    // Pending streams still require GPS authentication; registry,
+                    // revocation and the media idle timeout apply to all streams.
+                    if (!stream.socket || stream.socket.destroyed) await gps('/status', { device_id: stream.device.id });
                     stream.checked = Date.now();
                     const directory = path.join(root, stream.id);
                     if (fs.existsSync(directory)) {

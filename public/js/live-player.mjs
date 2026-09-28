@@ -1,3 +1,5 @@
+// Keep a modest startup reserve for cellular jitter; refill more after starvation.
+export const LIVE_START_BUFFER_SECONDS = 8;
 export const LIVE_BUFFER_SECONDS = 15;
 export const LIVE_HLS_CONFIG = Object.freeze({
     lowLatencyMode: false,
@@ -41,11 +43,14 @@ export function resetLivePlayer(player, playback, {preserveFrame = false} = {}) 
 
 export function attachLivePlayer(player, url, {
     Hls = globalThis.Hls, onState = () => {}, onError = () => {}, shouldPlay = () => true,
+    startBufferSeconds = LIVE_START_BUFFER_SECONDS,
     schedule = (fn, ms) => setInterval(fn, ms), cancel = id => clearInterval(id), now = () => Date.now(),
 } = {}) {
     let hls = null, disposed = false, buffering = true, started = false, nativePositioned = false, previewShown = false;
     let timer = null, bufferingSince = now();
     const listeners = [];
+    const initialBuffer = startBufferSeconds === 4 ? 4 : LIVE_START_BUFFER_SECONDS;
+    const requiredBuffer = () => started ? LIVE_BUFFER_SECONDS : initialBuffer;
     const listen = (event, callback) => { player.addEventListener(event, callback); listeners.push([event, callback]); };
     function destroy() {
         if (disposed) return;
@@ -67,12 +72,12 @@ export function attachLivePlayer(player, url, {
         }
         if (!hls && !nativePositioned && player.seekable.length) {
             const start = player.seekable.start(0), end = player.seekable.end(player.seekable.length - 1);
-            if (end - start >= LIVE_BUFFER_SECONDS) {
+            if (end - start >= requiredBuffer()) {
                 player.currentTime = Math.max(start, end - LIVE_HLS_CONFIG.liveSyncDuration);
                 nativePositioned = true;
             }
         }
-        if (bufferedAhead(player) >= LIVE_BUFFER_SECONDS - 0.1 && player.readyState >= 2) {
+        if (bufferedAhead(player) >= requiredBuffer() - 0.1 && player.readyState >= 2) {
             buffering = false; player.controls = true;
             if (!shouldPlay()) { onState('paused'); return; }
             Promise.resolve(player.play()).catch(error => {
@@ -86,7 +91,7 @@ export function attachLivePlayer(player, url, {
     listen('playing', () => { if (!buffering) { started = true; onState('ready'); } });
     listen('pause', () => { if (started && !buffering && !disposed) onState('paused'); });
     listen('ended', () => fail(new Error('Live stream ended')));
-    listen('play', () => { if (buffering && bufferedAhead(player) < LIVE_BUFFER_SECONDS - 0.1) player.pause(); });
+    listen('play', () => { if (buffering && bufferedAhead(player) < requiredBuffer() - 0.1) player.pause(); });
     listen('waiting', () => {
         if (started && !buffering && !player.paused && bufferedAhead(player) < 1) {
             buffering = true; bufferingSince = now(); player.pause(); player.controls = false; onState('buffering');
@@ -106,5 +111,14 @@ export function attachLivePlayer(player, url, {
         } else throw Object.assign(new Error('HLS playback unsupported'), {status:422});
         if (!disposed) timer = schedule(check, 250);
     } catch (error) { destroy(); throw error; }
-    return {destroy};
+    function resume() {
+        if (disposed || !shouldPlay()) return;
+        if (buffering) { check(); return; }
+        if (player.paused) Promise.resolve(player.play()).catch(error => {
+            if (disposed) return;
+            if (error.name === 'NotAllowedError') onState('play_required');
+            else if (error.name !== 'AbortError') fail(error);
+        });
+    }
+    return {destroy,resume};
 }

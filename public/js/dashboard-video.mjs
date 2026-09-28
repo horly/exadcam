@@ -1,7 +1,7 @@
-import {MapVideoChannel} from './map-video.mjs?v=live-reconnect-1';
-import {attachLivePlayer, resetLivePlayer} from './live-player.mjs?v=live-reconnect-1';
+import {MapVideoChannel} from './map-video.mjs?v=live-pipeline-20260924';
+import {attachLivePlayer, resetLivePlayer} from './live-player.mjs?v=live-pipeline-20260924';
 import {DashboardVideoSelection} from './dashboard-video-session.mjs?v=dashboard-live-1';
-import {audioControls} from './live-audio.mjs?v=audio-3';
+import {audioControls} from './live-audio.mjs?v=talk-direction-20260924';
 
 const panel = document.getElementById('dashboard-camera-panel');
 if (panel) {
@@ -37,8 +37,8 @@ if (panel) {
             notify(state) {
                 status.textContent = labels[state]; start.hidden = state !== 'failed'; stop.hidden = state === 'failed';
             },
-            attach(url,onError) {
-                playback = attachLivePlayer(player,url,{
+            attach(url,onError,options) {
+                playback = attachLivePlayer(player,url,{...options,
                     shouldPlay:()=>!manualPaused,
                     onState(state) {
                         if (state === 'paused') manualPaused = true;
@@ -60,7 +60,7 @@ if (panel) {
     const updateInfo = () => {
         info.replaceChildren(); const vehicle = selected(); if(!vehicle) return;
         const status = document.createElement('span'); status.className='dashboard-connection'; status.dataset.tone=vehicle.connection; status.textContent=vehicle.status;
-        const details = document.createElement('span'); details.textContent=vehicle.model;
+        const details = document.createElement('span'); details.textContent=vehicle.model || '';
         info.append(status,details);
     };
     document.addEventListener('exadcam:dashboard-data',event=>{
@@ -80,14 +80,14 @@ if (panel) {
         updateInfo();
         const vehicle = active() ? selected() : null;
         void vehicleAudio.select(vehicle?.device_id);
-        panel.dataset.cameraModel = vehicle?.model || '';
+        panel.dataset.videoFit = vehicle?.video_fit || 'contain';
         channels.forEach(({showIdle})=>showIdle());
         void selection.choose(vehicle);
     });
     const clear = (keepalive = false) => {
         void vehicleAudio.select(null,keepalive);
         select.value = ''; select.dispatchEvent(new Event('searchable-select:refresh'));
-        delete panel.dataset.cameraModel; info.replaceChildren();
+        delete panel.dataset.videoFit; info.replaceChildren();
         void selection.clear(keepalive);
         channels.forEach(({showIdle})=>showIdle());
     };

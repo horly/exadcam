@@ -167,3 +167,76 @@ pas la disparition des coupures propres aux flux ES500 déjà suivies dans le jo
 Les deux flux d'essai sont arrêtés explicitement avant la fin de la validation.
 
 Complément final : état GPS ajouté au statut de recherche pour les comptes avec accès carte ; sauvegarde /var/backups/exadcam-dashboard-real-20260923-145930. Pastille de statut corrigée et feuille de style versionnée dashboard-real-2. Empreintes CSS/Blade identiques en local et en production. Les quatre services sont actifs au contrôle final. Les deux lecteurs de test sont arrêtés et leurs reprises annulées. Les pertes de contact ES500 observées restent à diagnostiquer ; elles ne sont pas corrigées par ce lot dashboard.
+
+## 24 septembre 2026 — Démarrage vidéo accéléré, version finale à 8 secondes
+
+Demande : ouverture lente des directs sur les deux modèles, avec les absences
+de Véhicule 2 à traiter séparément. Réserve initiale réduite de 15 à 8 secondes,
+remplissage après épuisement conservé à 15 secondes. Vérification du premier
+manifest toutes les secondes, puis renouvellement à 5 secondes. Trois interfaces
+versionnées live-startup-20260924b ; droits, leases, audio/micro conservés.
+
+62 tests JavaScript réussis sur la version finale. Déploiement final à
+11:51:09 UTC, huit fichiers et leurs empreintes vérifiés ; sauvegarde
+/var/backups/exadcam-live-startup-20260924-115108. Vues compilées, aucun cache
+de leases vidé ni service redémarré (trois PID inchangés). Cinq ressources JS
+publiques HTTP 200 avec empreinte conforme. La première version à 4 secondes
+a été ajustée après un remplissage observé sur CH2 ES500 ; son historique et
+la sauvegarde de la version initiale sont dans docs/live-stream-startup.md.
+
+Essais navigateur sur ES500 fiche 4 et JK114 fiche 3 : les deux canaux de chaque
+appareil sont effectivement lus, leur progression est constatée à deux relevés
+séparés. Les flux d'essai sont arrêtés explicitement, aucun micro ouvert. Ces
+essais courts ne constituent ni un test d'endurance ni une promesse d'ouverture
+totale en huit secondes. Le délai matériel et réseau subsiste.
+
+Véhicule 2 encore absent à 11:54:03 UTC, contact 11:29:07, après l'essai RST
+précédent. Aucun nouvel essai de déconnexion. Retour automatique non résolu ;
+timeout 30 s/retransmissions 3 à restaurer vers 10 s/0 au prochain retour.
+Défaut distinct de présence sur réponses de commandes encore non corrigé.
+Voir docs/es500-auto-return.md ; aucune tâche de surveillance laissée en fond.
+
+Fichiers : public/js/{live-player.mjs,map-video.mjs,google-map.js,dashcams.js,
+dashboard-video.mjs}, trois entrées Blade, deux tests JS. Preuves et sauvegardes
+locales : workspace analysis/live-startup-20260924/. Détails complets dans
+docs/live-stream-startup.md. Aucune suite Laravel complète rejouée dans ce lot.
+
+## 24 septembre 2026 — Fragments vidéo courts et attente de confirmation caméra
+
+Demande : réduire encore le chargement du direct. ES500 fiche 4 CH2, mesure
+serveur comparable : réserve nécessaire prête à 19,567 s avant, 12,823 s après
+(gain 6,744 s, environ 34 %). Premiers paquets à 8,900 puis 8,386 s : le délai
+propre à l'appareil reste présent. Ce n'est pas une mesure clic → lecture garantie.
+
+Profil HLS rapide JK114/ES500 : fragments indépendants de 1 s, fenêtre d'environ
+40 s, recompression libx264 veryfast/zerolatency CRF 20 avec dimensions conservées,
+un thread decode/encode et analyse initiale réduite. Coût CPU supérieur à la copie.
+Le serveur annonce une réserve initiale de 4 s uniquement pour ce profil ;
+fallback copie, modèles inconnus et anciens serveurs restent à 8 s. Reprise
+après épuisement à 15 s conservée, lecture commune aux trois interfaces.
+
+Un timeout/503 de confirmation de départ n'envoie plus immédiatement Stop et
+ne détruit plus la demande déjà autorisée ; réception possible pendant le délai
+d'inactivité existant de 30 s, contrôlé toutes les 5 s. Identités, registre,
+révocations et refus explicites restent appliqués. Pas de statut prêt artificiel.
+
+Validation fraîche : 33 tests Linux avec FFmpeg, puis 7 ciblés après métadonnées,
+puis 8 ciblés après correction ACK ; 64 tests JS. Test additionnel de cadence
+SPS différente : 2 réussis. Pas de suite Laravel complète rejouée. Déploiements
+12:24:04 puis 12:32:24 UTC, sauvegardes /var/backups/exadcam-live-pipeline-20260924-122401
+et /var/backups/exadcam-live-pipeline-20260924-123223. Dix fichiers plus copies
+runtime vérifiés par empreintes ; cache des vues reconstruit. Seul service vidéo
+relancé, PID final 161604 ; GPS 156157 et audio 151193 inchangés.
+
+Véhicule 2 : deux canaux lus en production, mais interruption source CH2 et
+remplissage CH1 observés ; reprise automatique confirmée, puis arrêt volontaire.
+JK114 fiche 3 : timeouts et arrivées média intermittentes, lecture continue
+non validée. Capture bornée de 12 s, aucun paquet perdu par le noyau, seulement
+deux images complètes reconstituées et un flux partiel inexploitable ; ne pas
+attribuer une cause précise ni présenter la JK114 comme rétablie. Aucun micro
+ni écoute lancé par l'agent. Aucun paramètre matériel changé, aucune coupure GPS.
+
+Fichiers : listener/src/video.js et video-profile.js, tests vidéo associés,
+live-player.mjs, map-video.mjs, leurs trois intégrations et versions Blade,
+deux tests JS. Détails et limites dans docs/live-stream-startup.md ; preuves
+et sources sauvegardées dans workspace analysis/live-pipeline-20260924/.

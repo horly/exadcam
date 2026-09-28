@@ -3,7 +3,7 @@ import {randomBytes,randomUUID} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
 import {WebSocketServer,WebSocket} from 'ws';
 import {Frames1078,decodeBcd} from './protocol.js';
-import {AudioFrames,AdtsFrames,adtsFormat,audioTranscoder,encodeAudioPacket,SUPPORTED_AUDIO} from './audio-codec.js';
+import {AudioFrames,AdtsFrames,adtsFormat,g711FrameSize,audioTranscoder,encodeAudioPacket,SUPPORTED_AUDIO} from './audio-codec.js';
 import {registry,post,log,internalServer,reply,safeEqual} from './common.js';
 
 export function startAudio({transcoder=audioTranscoder}={}) {
@@ -36,46 +36,66 @@ export function startAudio({transcoder=audioTranscoder}={}) {
             session.requested=true;
             await video(session.mode==='talk'?'talk-start':'attach',session);
             if(session.closed)return;
-            if(session.mode==='talk')await gps('/audio/start',{device_id:session.device.id,channel:1,mode:session.mode});
+            session.startRequestedAt=Date.now();
+            if(session.mode==='talk'){
+                try{await gps('/audio/start',{device_id:session.device.id,channel:1,mode:session.mode});}
+                catch(error){
+                    if(error.status!==503&&!['TimeoutError','AbortError'].includes(error.name))throw error;
+                    log('audio_start_ack_delayed',{device_id:session.device.id});
+                }
+            }
             if(!session.closed){session.acknowledged=true;send(session,{state:'connecting'});}
         } catch(error){fail(session,error);}
     };
     const beginEncoder=session=>{
         let pending=Buffer.alloc(0),sequence=0,timestamp=0;
-        const adts=new AdtsFrames();
+        const adts=new AdtsFrames(), frameSize=g711FrameSize(session.capabilities,session.rate);
         const transmit=payload=>{
             if(session.closed||!session.socket||session.socket.destroyed)return;
             if(session.socket.writableLength>8192)throw Error('Audio return too slow');
             const packet=encodeAudioPacket({terminal:session.device.video_terminal_id,channel:1,codec:session.codec,sequence:sequence++,timestamp,payload});
             timestamp+=(session.codec===19?1024:payload.length)/session.rate*1000;
-            session.socket.write(packet);session.sent++;
+            session.socket.write(packet,error=>{
+                if(session.closed)return;
+                if(error)return fail(session,error);
+                session.sent++;
+                if(!session.transmitting){
+                    session.transmitting=true;
+                    send(session,{state:'transmitting',mode:'talk'});
+                    log('audio_transmitting',{device_id:session.device.id,codec:session.codec});
+                }
+            });
         };
-        session.encoder=transcoder({codec:session.codec,rate:session.rate,encode:true,onError:error=>fail(session,error),onData:data=>{
+        session.encoder=transcoder({codec:session.codec,rate:session.rate,encode:true,gain:session.device.model==='ES500-603'?4:session.device.model==='JK114'?2:1,onError:error=>fail(session,error),onData:data=>{
             try {
                 if(session.codec===19){for(const frame of adts.push(data))transmit(frame);}
-                else {pending=Buffer.concat([pending,data]);const size=Math.round(session.rate*0.02);while(pending.length>=size){transmit(pending.subarray(0,size));pending=pending.subarray(size);}}
+                else {pending=Buffer.concat([pending,data]);const size=frameSize;while(pending.length>=size){transmit(pending.subarray(0,size));pending=pending.subarray(size);}}
             }catch(error){fail(session,error);}
         }});
     };
     const consume=(session,codec,frame)=>{
         if(!SUPPORTED_AUDIO.includes(codec))throw Error('Unsupported audio codec');
         session.lastPacket=Date.now();session.received++;
-        if(!session.decoder){
+        if(session.codec===undefined){
             session.codec=codec;
             session.rate=codec===19?adtsFormat(frame).rate:session.capabilities.sample_rate;
             if(!session.rate)throw Error('Unknown sample rate');
-            session.decoder=transcoder({codec,rate:session.rate,onError:error=>fail(session,error),onData:pcm=>{
+            if(session.mode==='talk'){
+                // Only the authenticated camera socket receives browser microphone audio.
+                // Talk does not decode or play the camera microphone in the browser.
+                beginEncoder(session);session.ready=true;
+                send(session,{state:'ready',mode:'talk',sample_rate:16000});
+            }else session.decoder=transcoder({codec,rate:session.rate,onError:error=>fail(session,error),onData:pcm=>{
                 if(session.closed||session.ws?.readyState!==WebSocket.OPEN)return;
                 if(session.ws.bufferedAmount>32000)return fail(session,Error('Audio browser too slow'));
                 if(!session.ready){session.ready=true;send(session,{state:'ready',mode:session.mode,sample_rate:16000});}
                 session.pcm=Buffer.concat([session.pcm||Buffer.alloc(0),pcm]);
                 while(session.pcm.length>=640){session.ws.send(session.pcm.subarray(0,640),{binary:true});session.pcm=session.pcm.subarray(640);}
             }});
-            if(session.mode==='talk')beginEncoder(session);
-            log('audio_source',{device_id:session.device.id,mode:session.mode,codec,rate:session.rate});
+            log('audio_source',{device_id:session.device.id,mode:session.mode,codec,rate:session.rate,return_frame_length:codec===19?null:g711FrameSize(session.capabilities,session.rate),microphone_gain:session.mode==='talk'?(session.device.model==='ES500-603'?4:session.device.model==='JK114'?2:1):1});
         }
         if(codec!==session.codec)throw Error('Audio codec changed');
-        session.decoder.write(frame);
+        session.decoder?.write(frame);
     };
     const server=net.createServer(socket=>{
         if(sockets.size>=32)return socket.destroy();
@@ -170,7 +190,7 @@ export function startAudio({transcoder=audioTranscoder}={}) {
         if(checking)return;checking=true;
         try{
             await Promise.allSettled([...sessions.values()].map(async session=>{
-                if(session.expires<Date.now()||(session.requested&&Date.now()-session.lastPacket>15000)){void stop(session,'expired');return;}
+                if(session.expires<Date.now()||(session.received ? Date.now()-session.lastPacket>15000 : session.startRequestedAt&&Date.now()-session.startRequestedAt>30000)){void stop(session,'expired');return;}
                 try{await access(session);if(session.acknowledged)await video('keepalive',session);}catch{void stop(session,'revoked');}
             }));
         }finally{checking=false;}

@@ -112,3 +112,211 @@ Audio-3 ajoute la reprise automatique de l’écoute après 5 secondes, sans jam
 redémarrer le microphone. Un arrêt utilisateur ou un retrait de droits annule
 cette reprise ; deux tests supplémentaires vérifient ce comportement.
 L’utilisateur indique qu’il testera le retour haut-parleur plus tard.
+
+
+## 24 septembre 2026 — Retour matériel et format ES500
+
+L’utilisateur confirme que Parler fonctionne physiquement sur JK114. Sur ES500,
+son navigateur reçoit du son, mais le haut-parleur de la caméra reste muet.
+Cette précision remplace l’attente de test mentionnée dans les entrées précédentes.
+
+Capacités ES500 fiche 4 reçues à 07:45:06.297 UTC : A-law 6, mono, 8000 Hz,
+sample_bits=16, frame_length=80, output=true. Le serveur formait tous les retours
+G.711 en 160 octets. g711FrameSize sélectionne maintenant la longueur annoncée
+entre 5 et 120 ms, sinon 20 ms par défaut. Les timestamps progressent selon les
+échantillons effectivement envoyés ; 80 octets = 10 ms pour ce codec 8 kHz.
+AAC reste assemblé selon ses en-têtes ADTS ; aucun changement du microphone JK114.
+
+Régressions TCP/WebSocket : pairs annonçant 80 et 320 octets, contrôle du nombre
+de paquets, identités 6/10 octets, séquences et timestamps, refus d’un second
+interlocuteur, contrôle des droits et révocation. Suite Linux 30/30 avec FFmpeg.
+Déployé à 08:18:41 UTC, sauvegarde camera-fixes-20260924-081841.
+L’audibilité ES500 n’a pas été vérifiée physiquement après correction. L’agent
+n’a lancé aucun microphone, aucune écoute ni session audio matérielle ce jour.
+
+## 24 septembre 2026 — Validation utilisateur après correction
+
+L’utilisateur confirme maintenant que le microphone / haut-parleur fonctionne
+physiquement sur l’ES500, comme sur la JK114. Ce retour remplace l’attente de test
+du paragraphe précédent. Aucun nouvel essai de microphone effectué par l’agent.
+Le problème restant concerne la connexion pendant la veille ES500 ; voir
+device-commissioning.md et listener-server.md.
+
+
+## 24 septembre 2026 — Droits clients et interphone ES500
+
+## Audio
+
+- Réservation des deux canaux pendant Parler sur ES500, au lieu du seul canal 1.
+  Les requêtes vidéo déjà en cours sont drainées avant le démarrage de l’audio.
+  JK114 conserve le second canal. La reprise vidéo suit l’arrêt de l’interphone.
+- Attente initiale jusqu’à 30 s après la commande, séparée du délai d’inactivité
+  de 15 s après réception ; confirmation tardive 503/timeout ne détruit plus la
+  session. Les permissions, refus explicites et durée du bail restent appliqués.
+- Gain du microphone ES500 multiplié par deux (+6 dB), limité à 0,95 pleine
+  échelle avant encodage G.711. JK114 et le volume d’écoute restent inchangés.
+  Ce réglage amplifie le signal transmis, pas le réglage matériel du haut-parleur.
+- Aucune reprise automatique du microphone ; pas d’écoute/micro navigateur lancé
+  par l’agent. Les sondes matérielles reçoivent et comptent le PCM sans le stocker,
+  puis transmettent uniquement du silence. Les baux et grants sont supprimés.
+
+## Contrôles et limites
+
+- 81 tests PHP ciblés / 720 assertions, puis 24 / 260 après confidentialité des
+  alertes. SQLite en mémoire et cache de test séparés de la base métier.
+- 64 tests JavaScript réussis.
+- Linux : 4 tests codecs avec FFmpeg (dont mesure de gain et limiteur), 8 tests
+  vidéo/coordination, 7 tests audio incluant premier paquet retardé de 17 s et
+  ACK absent, droits/révocation, paquet G.711 80 octets. Une erreur de syntaxe
+  dans un nouveau test a été corrigée avant le passage réussi des 7 tests audio.
+- ES500 Toyota Hilux 9863BV01 : prêt en 1,284 s, 133760 octets PCM reçus,
+  129280 octets silencieux transmis ; journal 422 trames reçues / 403 envoyées,
+  fermeture volontaire. Cela valide le transport, pas l’audibilité humaine.
+- Véhicule 2 : commande acceptée, zéro trame, expiration autour de 31–33 s.
+  Capture bornée à 40 s : zéro paquet entrant TCP 1080. Utilisateur confirme
+  Parler fonctionnel dans CarAssist. Nouvel essai après fermeture confirmée
+  de CarAssist : résultat identique. Ne pas attribuer la cause à une concurrence
+  exclusive, au volume, au navigateur ou à une panne matérielle sans preuve.
+
+## Déploiements
+
+- 13:16:19 UTC : 26 fichiers, copies runtime de trois modules listener.
+  Sauvegarde `/var/backups/exadcam-client-audio-20260924-131615`.
+  GPS PID 156157 conservé ; vidéo 164448, audio 164451.
+- 13:21:51 UTC : masquage supplémentaire du modèle dans les alertes,
+  sauvegarde `/var/backups/exadcam-client-alert-20260924-132151`.
+- Pas de migration, modification de paramètres caméra ou nettoyage du cache
+  applicatif. Vues reconstruites et PHP-FPM rechargé.
+
+Référence du traitement audio : https://ffmpeg.org/ffmpeg-filters.html#alimiter.
+
+## Transition finale et résultat matériel
+
+13:30:05 UTC : transition ES500 directe vers l’interphone, sans 0x9102 d’arrêt
+AV juste avant 0x9101. Réservation et fermeture des lecteurs locaux conservées ;
+arrêts utilisateur, expirations et JK114 inchangés. Huit tests vidéo Linux
+repassent après cette modification. Sauvegarde
+`/var/backups/exadcam-intercom-transition-20260924-133002` ; seul service vidéo
+redémarré, GPS 156157 inchangé.
+
+Véhicule 2, essai 13:30:19 UTC : toujours zéro octet audio, expiration à 32,625 s.
+Ne pas annoncer son interphone réparé. La suppression de l’arrêt AV ne prouve
+donc pas la cause de son absence de connexion. ES500 Hilux, contre-essai final
+13:31:23 UTC : prêt en 1,400 s, 88960 octets PCM reçus, 129280 octets silencieux
+transmis ; arrêt volontaire après quatre secondes d’échange. La liaison de
+cette seconde ES500 reste opérationnelle après la transition.
+
+Tous les essais matériels sont terminés, sans microphone navigateur ni stockage
+du son. L’audibilité et le niveau réel du haut-parleur n’ont pas été mesurés sur
+place. Le cas Véhicule 2 demeure une différence de comportement de la liaison
+JT1078 d’interphone ; pas de cause firmware/réseau attribuée faute de preuve.
+
+
+# 24 septembre 2026 — Sens de Parler / Écouter
+
+L'utilisateur veut parler dans EXADCAM et être entendu sur le haut-parleur de
+Véhicule 2. Le mode précédent était duplex : il restituait aussi le microphone
+de la caméra dans le navigateur. L'état « conversation » dépendait du décodage
+entrant et ne confirmait pas l'envoi du microphone. Le code n'inversait pas les
+boutons, mais ce comportement ne correspondait pas au sens demandé.
+
+## Modification livrée
+
+- Parler : microphone navigateur → socket JT1078 identifié de la caméra.
+  Aucun son de caméra n'est joué dans le navigateur dans ce mode, ni envoyé
+  en PCM par le serveur. Le décodage entrant n'est plus requis pour ouvrir
+  l'encodeur retour ; le premier paquet valide identifie toujours la caméra
+  et son codec avant tout envoi.
+- Écouter : microphone caméra → navigateur, sans demander le microphone local.
+- Le worklet de capture produit une sortie locale silencieuse, avec un gain
+  nul supplémentaire sur son branchement au graphe audio. Aucun monitoring
+  local du microphone n'est utilisé.
+- Niveau de microphone visible pendant la capture. Curseur du volume réservé
+  à l'écoute. Libellés FR/EN explicitent la destination du son.
+- L'état « envoi vers le véhicule » apparaît après écriture effective du
+  premier paquet sortant sur la socket identifiée, pas à la simple réception
+  de son entrant. Il ne constitue pas un acquittement acoustique du matériel.
+  Un micro sans retour effectif reste soumis au délai initial de 45 secondes.
+- Gain ES500 +6 dB et limiteur conservés, cadres G.711 de 80 octets conservés.
+  Commandes JT808, arrêt volontaire, autorisations, baux et absence de reprise
+  automatique du microphone conservés.
+
+## Preuves nouvelles, distinctes du lot précédent
+
+- Journaux avant ce lot : Véhicule 2 a ouvert l'audio à 13:41:41 UTC, puis
+  fermé à 13:42:05 avec 2432 trames entrantes / 2351 sortantes. Cela corrige
+  l'observation antérieure « aucune connexion » ; aucune cause du retour
+  ni redémarrage physique confirmé par l'utilisateur à ce stade.
+- 66 tests JavaScript passés, dont séparation des directions, état sans envoi
+  et absence de restitution locale du microphone dans le worklet.
+- 17 tests PHP ciblés / 126 assertions : audio, aperçu vidéo du tableau de
+  bord et carte. SQLite mémoire et cache séparé ; pas de suite PHP complète.
+- 11 tests Linux passés : 7 transport/protocole, 4 FFmpeg réels (G.711 A/µ-law,
+  AAC, amplification et limitation). Les trames du simulateur de caméra et
+  celles du navigateur sont distinctes ; le retour contient bien celles du
+  navigateur, et Parler ne renvoie aucun PCM de caméra au navigateur.
+- Sonde Véhicule 2 à 13:55:39.676 UTC : prêt en 0,799 s, premier envoi confirmé
+  à 0,842 s ; 129280 octets PCM silencieux injectés, zéro PCM renvoyé au
+  navigateur, arrêt volontaire à 4,872 s. Aucun son ambiant enregistré ni
+  microphone réel activé par l'agent. Un premier lancement du script a échoué
+  avant toute création de session (chemin relatif d'un fichier auxiliaire),
+  puis le chemin a été corrigé.
+- Après le déploiement, l'utilisateur confirme : « ça sors mais le volume est
+  bas ». La restitution physique de sa voix est donc confirmée par lui sur
+  Véhicule 2, au-delà du test silencieux. Le niveau demande un réglage additionnel.
+
+## Déploiement et sauvegarde
+
+14 fichiers de production et copie runtime du listener audio, déployés à
+13:54:08 UTC. Sauvegarde :
+`/var/backups/exadcam-talk-direction-20260924-135406`.
+Audio redémarré, PID 166384. GPS 156157 et vidéo 165314 conservés. Vues
+reconstruites, PHP-FPM rechargé. Aucun changement de paramètres caméra,
+migration ou purge du cache applicatif. Les trois tests modifiés/ajoutés
+sont conservés dans le projet local. Version navigateur :
+`talk-direction-20260924`.
+
+## Ajustement après confirmation de l'utilisateur
+
+L'utilisateur confirme la restitution, mais juge le volume faible. Le gain
+microphone ES500 passe de 2 à 4 : +6 dB supplémentaires, soit environ +12 dB
+par rapport au signal d'origine. Limiteur à 0,95 conservé. Cette amplification
+porte uniquement sur le signal envoyé au véhicule ; l'écoute et la JK114
+restent inchangées. Ce n'est pas une modification du volume matériel CarAssist.
+
+Les 11 tests Linux ont été exécutés à nouveau avec succès sur ce réglage :
+le test FFmpeg/G.711 mesure une amplitude environ quadruplée pour le signal
+faible et des pics limités pour le signal fort. Aucune nouvelle session
+matérielle ni aucun son audible n'a été injecté pour ce réglage de gain.
+
+Déploiement à 14:00:22 UTC : deux sources et leurs copies runtime ; sauvegarde
+`/var/backups/exadcam-talk-volume-20260924-140021`. Audio PID 166845 ; GPS
+156157 et vidéo 165314 inchangés. L'utilisateur doit relancer Parler pour
+apprécier le nouveau niveau sonore. Le volume perçu n'est pas déduit du gain
+électrique ni des tests de codec.
+
+Une tentative audio distincte a encore journalisé un échec de service 503 à
+13:56:17 UTC. La séparation des sens et la confirmation utilisateur du son
+ne prouvent pas la résolution de toute intermittence de connexion ES500.
+
+
+# 24 septembre 2026 — Volume Parler JK114
+
+L'utilisateur demande le même ajustement sur « l'autre device » et précise
+ensuite « La JK114 ». Gain microphone de cette famille porté de 1 à 2
+(environ +6 dB) avant encodage vers le véhicule, limiteur à 0,95 conservé.
+Les ES500 gardent leur gain de 4 ; le volume d'écoute navigateur est inchangé.
+
+Douze tests audio/Linux réussis sur ce lot : transport et révocation, codecs
+G.711/AAC réels, gain ES500 et nouveau contrôle du gain JK114 après encodage
+puis décodage AAC. Ce dernier mesure environ deux fois l'amplitude du signal
+faible. Aucun nouveau test matériel audible, aucun microphone navigateur
+activé par l'agent pour ce réglage. La voix sur Véhicule 2 avait été confirmée
+par l'utilisateur avant ces augmentations ; l'appréciation des niveaux finaux
+ES500 et JK114 reste à l'utilisateur.
+
+Déployé le 24 septembre à 14:05:06 UTC, source audio et copie runtime.
+Sauvegarde : `/var/backups/exadcam-jk-talk-volume-20260924-140505`.
+Audio PID 167293 ; GPS 156157 et vidéo 165314 conservés. Aucun redémarrage
+caméra, changement de réglage embarqué, migration ou purge du cache métier.
+Le nouveau gain s'applique à la prochaine ouverture de Parler.

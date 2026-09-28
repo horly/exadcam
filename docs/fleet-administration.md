@@ -1,5 +1,17 @@
 # Administration et accès par flotte
 
+## Règles actuelles — 24 septembre 2026
+
+La création de véhicules est réservée au superadmin, y compris pour les appels
+API directs. Admins de flotte et utilisateurs délégués peuvent modifier les
+véhicules existants selon leurs permissions. La création de départements reste
+permise. Modèle, IMEI et nom technique de caméra ne sont plus exposés aux clients,
+ni dans la carte, le registre, les vidéos, le tableau de bord ou les alertes.
+Le popup affiche Contact ACC d’après la télémétrie. Le cadrage vidéo est conservé
+grâce à une propriété de présentation, sans divulgation du modèle utilisé.
+Ces règles remplacent les possibilités de création de véhicule et d’affichage
+du modèle décrites dans l’état historique ci-dessous. Voir le dernier journal.
+
 ## Administration de flotte — 22 septembre 2026
 
 Un admin actif affecté à une flotte active gère ses véhicules et départements

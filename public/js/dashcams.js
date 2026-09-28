@@ -1,8 +1,8 @@
 (async () => {
     'use strict';
-    const {attachLivePlayer, resetLivePlayer} = await import('./live-player.mjs?v=live-reconnect-1');
-    const {MapVideoChannel} = await import('./map-video.mjs?v=live-reconnect-1');
-    const {audioControls} = await import('./live-audio.mjs?v=audio-3');
+    const {attachLivePlayer, resetLivePlayer} = await import('./live-player.mjs?v=live-pipeline-20260924');
+    const {MapVideoChannel} = await import('./map-video.mjs?v=live-pipeline-20260924');
+    const {audioControls} = await import('./live-audio.mjs?v=talk-direction-20260924');
     const configNode = document.getElementById('dashcam-config');
     if (!configNode) return;
     const config = JSON.parse(configNode.textContent), strings = config.strings;
@@ -58,7 +58,7 @@
         fieldError(field.name, message); return !message;
     }
     function profile(year = null) {
-        const model = fields.namedItem('model').value, es = model === 'ES500-603';
+        const model = fields.namedItem('model').value, es = model === '4G SmartVision JT808/1078';
         document.getElementById('dashcam-fields').disabled = !model;
         document.getElementById('dashcam-identifier-group').hidden = !es;
         fields.namedItem('communication_id').disabled = !es;
@@ -87,8 +87,8 @@
         form.reset(); formAlert.hidden = true;
         form.querySelectorAll('[data-dashcam-error]').forEach(el => fieldError(el.dataset.dashcamError));
         document.getElementById('dashcam-form-title').textContent = strings[record ? 'edit' : 'new'];
-        (config.isPlatform ? ['model','name','imei','channels','frame_rate'] : ['name']).forEach(key => { if (record) fields.namedItem(key).value = record[key] ?? ''; });
-        if (config.isPlatform) { fields.namedItem('communication_id').value = record?.model === 'ES500-603' ? record.terminal_id_2013 : '';
+        (config.isPlatform ? ['model','name','imei','channels','frame_rate'] : []).forEach(key => { if (record) fields.namedItem(key).value = record[key] ?? ''; });
+        if (config.isPlatform) { fields.namedItem('communication_id').value = record?.model === '4G SmartVision JT808/1078' ? record.terminal_id_2013 : '';
         profile(record?.protocol_version); }
         const submit = form.querySelector('[type="submit"]'); submit.disabled = true;
         bootstrap.Modal.getOrCreateInstance(formModal).show();
@@ -129,8 +129,8 @@
             if (!preserveFrame) manualPaused = false;
         },
         notify(state, error) { status.textContent = state === 'failed' ? (error?.message || strings.unavailable) : strings[state]; },
-        attach(url, onError) {
-            playback = attachLivePlayer(player, url, {
+        attach(url, onError, options) {
+            playback = attachLivePlayer(player, url, {...options,
                 shouldPlay: () => !manualPaused,
                 onState(state) {
                     if (state === 'paused') manualPaused = true;
@@ -144,7 +144,8 @@
     const stop = keepalive => Promise.allSettled([liveSession.stop(keepalive),vehicleAudio.select(null,keepalive)]);
     async function start(device, channel) {
         await vehicleAudio.select(device);
-        modal.dataset.cameraModel = records.find(record => String(record.id) === String(device))?.model || '';
+        const camera = records.find(record => String(record.id) === String(device));
+        modal.dataset.videoFit = camera?.video_fit || (camera?.model === 'ESTON ES500-603 JK114' ? 'fill' : 'contain');
         bootstrap.Modal.getOrCreateInstance(modal).show();
         await liveSession.start(`${config.url}/${device}/live`, channel);
     }
@@ -167,7 +168,7 @@
     let searchTimer;
     document.getElementById('dashcam-search').addEventListener('input', event => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.search = event.target.value.trim(); state.page = 1; void refresh(); }, 250); });
     document.getElementById('dashcam-page-size').addEventListener('change', event => { state.per_page = Number(event.target.value); state.page = 1; void refresh(); });
-    document.getElementById('dashcam-model-filter').addEventListener('change', event => { state.model = event.target.value; state.page = 1; void refresh(); });
+    document.getElementById('dashcam-model-filter')?.addEventListener('change', event => { state.model = event.target.value; state.page = 1; void refresh(); });
     modal.addEventListener('hidden.bs.modal', () => { void stop(); });
     window.addEventListener('pagehide', () => { void stop(true); });
     document.getElementById('dashcam-refresh').addEventListener('click', () => refresh());

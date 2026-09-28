@@ -27,6 +27,12 @@ class FleetAccess
         });
     }
 
+    public static function createRegistry(User $user, string $kind): bool
+    {
+        return self::registry($user, $kind, true)
+            && ($kind !== 'vehicles' || $user->isSuperadmin());
+    }
+
     public static function browse(User $user): bool
     {
         foreach ([User::PERMISSION_VEHICLES_MANAGE, User::PERMISSION_DEPARTMENTS_MANAGE,

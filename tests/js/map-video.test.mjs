@@ -35,7 +35,7 @@ function harness(handler) {
     const jobs=new Map(), events=[],attached=[],resets=[],calls=[];
     const session=new MapVideoChannel({
         request:async(url,data)=>{calls.push(url);return handler(url,data);},
-        attach:(url,fail)=>attached.push({url,fail}),reset:options=>resets.push(options),notify:s=>events.push(s),
+        attach:(url,fail,options)=>attached.push({url,fail,options}),reset:options=>resets.push(options),notify:s=>events.push(s),
         schedule:(fn,ms)=>{jobs.set(++next,{fn,ms});return next;},cancel:id=>jobs.delete(id),
     });
     return {session,jobs,events,attached,resets,calls,run:async()=>{
@@ -43,6 +43,25 @@ function harness(handler) {
     }};
 }
 const statusError=status=>Object.assign(Error('HTTP failure'),{status});
+
+test('the server profile selects the startup reserve without shortening legacy streams',async()=>{
+    for(const [value,expected] of [[4,4],[8,8],[undefined,8],[1,8]]){
+        const h=harness(async url=>url==='/live'?{lease_id:'one',url:'/media',startup_buffer_seconds:value}:url.endsWith('keepalive')?{status:'ready'}:{});
+        await h.session.start('/live',1);assert.deepEqual(h.attached[0].options,{startBufferSeconds:expected});await h.session.stop();
+    }
+});
+
+test('startup checks each second, attaches once, then renews every five seconds',async()=>{
+    let ready=false;
+    const h=harness(async url=>url==='/live'?{lease_id:'one',url:'/media/one'}:url.endsWith('keepalive')?{status:ready?'ready':'waiting'}:{});
+    await h.session.start('/live',1);
+    assert.equal(h.attached.length,0);assert.equal([...h.jobs.values()][0].ms,1000);
+    await h.run();assert.equal(h.attached.length,0);assert.equal([...h.jobs.values()][0].ms,1000);
+    ready=true;await h.run();
+    assert.equal(h.attached.length,1);assert.equal([...h.jobs.values()][0].ms,5000);
+    await h.run();assert.equal(h.attached.length,1);assert.equal(h.calls.filter(x=>x==='/live').length,1);
+    await h.session.stop();assert.equal(h.jobs.size,0);
+});
 
 test('an expired media session is replaced and attached again without another click',async()=>{
     let count=0,broken=false;
@@ -106,4 +125,25 @@ test('switching channels ignores stale recovery callbacks and releases the old l
     await h.session.start('/live',2);fail(Error('stale'));await Promise.resolve();
     assert.equal(h.session.lease.lease_id,'2');assert.equal(h.jobs.size,1);
     assert.equal(h.calls.includes('/live/2/stop'),false);await h.session.stop();
+});
+
+test('foreground renewal retains an active lease and cannot duplicate an in-flight heartbeat',async()=>{
+    const pending=deferred();let keepalives=0;
+    const h=harness(async url=>url==='/live'?{lease_id:'one',url:'/one'}:url.endsWith('keepalive')?(++keepalives===1?{status:'ready'}:pending.promise):{});
+    await h.session.start('/live',1);const waking=h.session.resume();await h.session.resume();
+    assert.equal(keepalives,2);assert.equal(h.jobs.size,0);
+    pending.resolve({status:'ready'});await waking;
+    assert.equal(h.attached.length,1);assert.equal(h.jobs.size,1);
+    assert.equal(h.calls.filter(x=>x.endsWith('/stop')).length,0);await h.session.stop();
+});
+test('returning after the browser suspended lease renewal reconnects without another click',async()=>{
+    let count=0,expired=false;
+    const h=harness(async url=>{
+        if(url==='/live')return {lease_id:String(++count),url:'/media/'+count};
+        if(url.endsWith('/keepalive')){if(expired){expired=false;throw statusError(404);}return {status:'ready'};}
+        return {};
+    });
+    await h.session.start('/live',2);expired=true;await h.session.resume();await h.run();
+    assert.equal(h.session.active,true);assert.equal(h.session.lease.lease_id,'2');assert.equal(h.attached.length,2);
+    await h.session.stop();await h.session.resume();assert.equal(count,2);
 });

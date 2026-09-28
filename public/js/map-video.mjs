@@ -5,6 +5,16 @@ export class MapVideoChannel {
         this.generation = 0; this.lease = null; this.timer = null; this.ready = false;
         this.target = null; this.failures = 0;
     }
+    queue(task, delay) {
+        this.timer = this.schedule(() => { this.timer = null; return task(); }, delay);
+    }
+    async resume() {
+        // A missing timer means a start, heartbeat or recovery is already in flight.
+        if (!this.target || this.timer === null) return;
+        this.cancel(this.timer); this.timer = null;
+        if (this.lease) await this.poll(this.generation);
+        else await this.open(this.generation);
+    }
     get active() { return this.target !== null; }
     async release(lease, keepalive = false) {
         if (lease) await this.request(`${lease.base}/${lease.lease_id}/stop`, {}, keepalive).catch(() => {});
@@ -43,10 +53,12 @@ export class MapVideoChannel {
             if (generation !== this.generation) return;
             if (state.status === 'ready' && !this.ready) {
                 this.ready = true; this.notify('buffering');
-                this.attach(lease.url, error => { void this.recover(error || Error('Media interrupted'), generation, 'media'); });
+                this.attach(lease.url, error => { void this.recover(error || Error('Media interrupted'), generation, 'media'); },
+                    {startBufferSeconds: lease.startup_buffer_seconds === 4 ? 4 : 8});
             }
             if (!this.ready && this.now() - this.openedAt > 60000) throw Error('Video startup timeout');
-            if (generation === this.generation) this.timer = this.schedule(() => this.poll(generation), 5000);
+            // Detect the first manifest promptly, then return to normal lease renewal.
+            if (generation === this.generation) this.queue(() => this.poll(generation), this.ready ? 5000 : 1000);
         } catch (error) { await this.recover(error, generation, 'keepalive'); }
     }
     async recover(error, generation, phase) {
@@ -63,6 +75,6 @@ export class MapVideoChannel {
         const delay = [3000,5000,10000,20000,30000][Math.min(this.failures++,4)];
         await this.release(lease);
         if (next !== this.generation || !this.target) return;
-        this.timer = this.schedule(() => this.open(next), delay);
+        this.queue(() => this.open(next), delay);
     }
 }

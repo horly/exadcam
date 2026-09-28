@@ -10,16 +10,18 @@ import { spawnSync } from 'node:child_process';
 import { startVideo } from '../src/video.js';
 import {encodeAudioPacket} from '../src/audio-codec.js';
 
-for (const [identityBytes, normalize] of [[6, false], [10, false], [6, true]]) test('video TCP with '+identityBytes+' identity bytes, normalization='+normalize+' produces HLS and expires revoked access', { skip: !fs.existsSync('/usr/bin/ffmpeg'), timeout: 25000 }, async t => {
+for (const [identityBytes, normalize, missingAck = false] of [[6, false], [10, false], [6, true], [10, false, true]]) test('video TCP with '+identityBytes+' identity bytes, normalization='+normalize+', missing ACK='+missingAck+' produces HLS and expires revoked access', { skip: !fs.existsSync('/usr/bin/ffmpeg'), timeout: 25000 }, async t => {
     const videoTerminal = identityBytes === 6 ? '456789012345' : '00000123456789012345';
     const secret = 'isolated-media-test-token-'.repeat(3);
-    let enabled = true;const receivedAudio=[];
+    let enabled = true, gpsOnline = true;const receivedAudio=[];
     const backend = http.createServer(async (req, res) => {
         assert.equal(req.headers.authorization, `Bearer ${secret}`);
         let body='';for await (const chunk of req) body+=chunk;
         res.setHeader('Content-Type', 'application/json');
+        if (req.url === '/live/start' && missingAck) { res.writeHead(503); return res.end('{}'); }
+        if (req.url === '/status' && !gpsOnline) { res.writeHead(409); return res.end('{}'); }
         if (!enabled && req.url === '/resolve') { res.writeHead(404); return res.end('{}'); }
-        if (req.url === '/resolve') return res.end(JSON.stringify({ id: 1, imei: '123456789012345', video_terminal_id: videoTerminal, channels: 2, frame_rate: 15, normalize_video_timestamps: normalize }));
+        if (req.url === '/resolve') return res.end(JSON.stringify({ id: 1, model: normalize ? 'ES500-603' : 'JK114', imei: '123456789012345', video_terminal_id: videoTerminal, channels: 2, frame_rate: 15, normalize_video_timestamps: normalize }));
         if(req.url==='/ingest')receivedAudio.push(JSON.parse(body));
         res.end('{"acknowledged":true,"online":true}');
     });
@@ -51,6 +53,7 @@ for (const [identityBytes, normalize] of [[6, false], [10, false], [6, true]]) t
     const denied = await connect(), deniedClosed = once(denied, 'close'); denied.write(packet(Buffer.from([0,0,0,1,0x65]))); await deniedClosed;
     const response = await fetch(api+'/sessions', { method: 'POST', headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ device_id: 1, channel: 1 }) });
     assert.equal(response.status, 201); const session = await response.json();
+    assert.equal(session.startup_buffer_seconds,4);
     const owner='00000000-0000-4000-8000-000000000001';
     const control=(route,extra={})=>fetch(api+route,{method:'POST',headers:{Authorization:`Bearer ${secret}`,'Content-Type':'application/json'},body:JSON.stringify({device_id:1,lease_id:owner,...extra})});
     assert.equal((await control('/audio/attach')).status,200);
@@ -66,12 +69,14 @@ for (const [identityBytes, normalize] of [[6, false], [10, false], [6, true]]) t
     let playlist = '';
     for (let i=0;i<80;i++) {
         const r = await fetch(`${api}/media/${session.lease_id}/index.m3u8`);
-        if (r.status===200) { playlist=await r.text(); if (playlist.split('#EXTINF:').length - 1 >= 20) break; }
+        if (r.status===200) { playlist=await r.text(); if (playlist.split('#EXTINF:').length - 1 >= 40) break; }
         await new Promise(resolve => setTimeout(resolve, 100));
     }
-    assert.equal(playlist.split('#EXTINF:').length - 1, 20, 'A forty-second window remains available for delayed playback');
+    assert.equal(playlist.split('#EXTINF:').length - 1, 40, 'A forty-second window remains available for delayed playback');
+    assert.match(playlist, /#EXT-X-INDEPENDENT-SEGMENTS/);
     const durations = [...playlist.matchAll(/#EXTINF:([0-9.]+)/g)].map(match => Number(match[1]));
     assert.ok(durations.reduce((sum, duration) => sum + duration, 0) >= 39);
+    assert.ok(durations.every(duration => Math.abs(duration - 1) < .1), 'Every segment covers one second');
     assert.match(playlist, /#EXTM3U/); const segment = playlist.split('\n').find(line => /^segment-.*\.ts$/.test(line));
     assert.ok(segment); const r = await fetch(`${api}/media/${session.lease_id}/${segment}`);
     assert.equal(r.status, 200);
@@ -99,6 +104,25 @@ for (const [identityBytes, normalize] of [[6, false], [10, false], [6, true]]) t
         assert.equal((await fetch(`${api}/media/${session.lease_id}/index.m3u8`)).status, 404);
         return;
     }
+    if (identityBytes === 6) {
+        gpsOnline = false;
+        // A fresh command still needs an authenticated GPS connection.
+        assert.equal((await control('/sessions', { channel: 2 })).status, 409);
+        // Cross at least one registry/presence check while the independent media
+        // source keeps sending valid packets. Existing viewers must stay alive.
+        const started = performance.now();
+        let sequence = boundaries.length;
+        while (performance.now() - started < 5500) {
+            socket.write(packet(raw.subarray(boundaries[0], boundaries[1]), sequence++));
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        assert.equal(socket.destroyed, false);
+        assert.equal((await fetch(`${api}/media/${session.lease_id}/index.m3u8`)).status, 200,
+            'GPS disconnect must not stop an established media source');
+        assert.equal((await fetch(`${api}/sessions/${session.lease_id}/keepalive`, {
+            method: 'POST', headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' }, body: '{}',
+        })).status, 200);
+    }
     enabled = false;
     for (let i=0;i<90;i++) {
         const r = await fetch(`${api}/media/${session.lease_id}/index.m3u8`);
@@ -107,10 +131,76 @@ for (const [identityBytes, normalize] of [[6, false], [10, false], [6, true]]) t
     }
     assert.equal((await fetch(`${api}/media/${session.lease_id}/index.m3u8`)).status, 404);
     if(identityBytes===6){
-        enabled=true;
+        enabled=true;gpsOnline=true;
         assert.equal((await control('/audio/talk-start')).status,200);
         assert.equal((await control('/sessions',{channel:1})).status,409,'Video cannot replace a live conversation');
+        assert.equal((await control('/sessions',{channel:2})).status,normalize?409:201,'ES500 reserves both channels, JK114 only the conversation channel');
         assert.equal((await control('/audio/detach')).status,200);
+        assert.equal((await control('/sessions',{channel:2})).status,201,'Second channel resumes after conversation');
         assert.equal((await control('/sessions',{channel:1})).status,201,'Video resumes after the microphone releases the channel');
     }
+});
+
+for(const rejected of [true,false]) test('explicit video refusal fails; missing ACK preserves the pending request: '+rejected,async t=>{
+    const secret='isolated-command-test-'.repeat(3);let stops=0;
+    const backend=http.createServer(async(req,res)=>{
+        assert.equal(req.headers.authorization,`Bearer ${secret}`);
+        for await(const _ of req){};
+        res.setHeader('Content-Type','application/json');
+        if(req.url==='/resolve')return res.end(JSON.stringify({id:1,video_terminal_id:'456789012345',channels:2}));
+        if(req.url==='/live/start'){res.writeHead(rejected?422:503);return res.end(JSON.stringify(rejected?{code:'device_rejected',result:1}:{}));}
+        if(req.url==='/live/stop')stops++;
+        res.end('{}');
+    });
+    backend.listen(0,'127.0.0.1');await once(backend,'listening');
+    const directory=fs.mkdtempSync(path.join(os.tmpdir(),'exadcam-command-test-'));
+    const base=`http://127.0.0.1:${backend.address().port}`;
+    Object.assign(process.env,{LISTENER_API_TOKEN:secret,LARAVEL_LISTENER_URL:base,GPS_API_URL:base,VIDEO_STORAGE:directory,VIDEO_PORT:'0',VIDEO_API_PORT:'0',LISTENER_BIND:'127.0.0.1'});
+    const service=startVideo();await once(service.server,'listening');
+    t.after(async()=>{await service.close();backend.closeAllConnections();backend.close();fs.rmdirSync(directory);});
+    const api=`http://127.0.0.1:${service.api.address().port}`;
+    for(let i=0;i<2;i++){
+        const r=await fetch(api+'/sessions',{method:'POST',headers:{Authorization:`Bearer ${secret}`,'Content-Type':'application/json'},body:JSON.stringify({device_id:1,channel:1})});
+        assert.equal(r.status,rejected?422:201);
+        const result=await r.json();assert.equal(result.code,rejected?'device_rejected':undefined);
+        if(!rejected){
+            const state=await fetch(`${api}/sessions/${result.lease_id}/keepalive`,{method:'POST',headers:{Authorization:`Bearer ${secret}`,'Content-Type':'application/json'},body:'{}'});
+            assert.equal(state.status,200);assert.equal((await state.json()).status,'waiting');
+        }
+    }
+    assert.equal(stops,0);
+});
+
+for(const model of ['ES500-603','JK114']) test('intercom drains in-flight starts and owns the appropriate channels: '+model,async t=>{
+    const secret='isolated-intercom-race-'.repeat(3),events=[];let releaseStart,startingSeen;
+    const seen=new Promise(resolve=>startingSeen=resolve);
+    const backend=http.createServer(async(req,res)=>{
+        let body='';for await(const part of req)body+=part;const data=JSON.parse(body||'{}');
+        assert.equal(req.headers.authorization,'Bearer '+secret);res.setHeader('Content-Type','application/json');
+        if(req.url==='/resolve')return res.end(JSON.stringify({id:1,model,video_terminal_id:'456789012345',channels:2}));
+        if(req.url==='/live/start'){
+            if(data.channel===2&&!releaseStart){startingSeen();await new Promise(resolve=>releaseStart=resolve);}
+            events.push('start-'+data.channel);
+        }
+        if(req.url==='/live/stop')events.push('stop-'+data.channel);
+        res.end('{}');
+    });
+    backend.listen(0,'127.0.0.1');await once(backend,'listening');
+    const directory=fs.mkdtempSync(path.join(os.tmpdir(),'exadcam-intercom-race-'));
+    const base='http://127.0.0.1:'+backend.address().port;
+    Object.assign(process.env,{LISTENER_API_TOKEN:secret,LARAVEL_LISTENER_URL:base,GPS_API_URL:base,VIDEO_STORAGE:directory,VIDEO_PORT:'0',VIDEO_API_PORT:'0',LISTENER_BIND:'127.0.0.1'});
+    const service=startVideo();await once(service.server,'listening');
+    t.after(async()=>{releaseStart?.();await service.close();backend.closeAllConnections();backend.close();fs.rmdirSync(directory);});
+    const api='http://127.0.0.1:'+service.api.address().port;
+    const call=(route,data={})=>fetch(api+route,{method:'POST',headers:{Authorization:'Bearer '+secret,'Content-Type':'application/json'},body:JSON.stringify({device_id:1,lease_id:'00000000-0000-4000-8000-000000000004',...data})});
+    assert.equal((await call('/sessions',{channel:1})).status,201);
+    const pending=call('/sessions',{channel:2});await seen;
+    let reserved=false;const talk=call('/audio/talk-start').then(r=>{reserved=true;return r;});
+    await new Promise(r=>setTimeout(r,100));
+    if(model==='ES500-603')assert.equal(reserved,false,'Reservation waits for pending second-channel command');
+    releaseStart();await pending;assert.equal((await talk).status,200);
+    assert.equal(events.includes('stop-1'),model!=='ES500-603','ES500 transitions directly to intercom without an AV Stop');
+    assert.equal(events.includes('stop-2'),false);
+    assert.equal((await call('/sessions',{channel:2})).status,model==='ES500-603'?409:201);
+    await call('/audio/detach');assert.equal((await call('/sessions',{channel:2})).status,201);
 });

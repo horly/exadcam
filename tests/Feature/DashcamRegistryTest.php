@@ -127,7 +127,7 @@ it('migrates commissioned cameras without altering their communication identitie
     $before = $camera->fresh()->getAttributes();
     $migration->up();
     $after = $camera->fresh();
-    expect($after->model)->toBe('ES500-603')->and($after->protocol_version)->toBe('2013')->and($after->vehicle_id)->toBeNull();
+    expect($after->model)->toBe('4G SmartVision JT808/1078')->and($after->protocol_version)->toBe('2013')->and($after->vehicle_id)->toBeNull();
     foreach ($before as $field => $value) {
         expect($after->getAttributes()[$field])->toBe($value);
     }

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\DashcamProfile;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -15,6 +17,24 @@ class Dashcam extends Model
     protected function casts(): array
     {
         return ['auth_token' => 'encrypted', 'enabled' => 'boolean', 'normalize_video_timestamps' => 'boolean', 'gps_timezone_minutes' => 'integer', 'last_seen_at' => 'datetime', 'position_at' => 'datetime', 'vehicle_assigned_at' => 'datetime'];
+    }
+
+    protected function model(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => DashcamProfile::canonicalModel($value),
+            set: fn (?string $value) => DashcamProfile::canonicalModel($value),
+        );
+    }
+
+    public function isSmartVision(): bool
+    {
+        return $this->model === DashcamProfile::SMARTVISION;
+    }
+
+    public function videoFit(): string
+    {
+        return $this->model === DashcamProfile::ESTON ? 'fill' : 'contain';
     }
 
     public function vehicle(): BelongsTo

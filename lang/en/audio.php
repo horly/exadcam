@@ -4,7 +4,8 @@ return [
     'title' => 'Vehicle audio', 'listen' => 'Listen', 'talk' => 'Talk', 'stop' => 'Stop audio',
     'idle' => 'Sound off', 'select' => 'Select a vehicle.', 'connecting' => 'Connecting audio…',
     'reconnecting' => 'Reconnecting audio automatically…',
-    'listening' => 'Live audio', 'talking' => 'Microphone on · live conversation', 'permission' => 'Allow microphone access in your browser.',
+    'listening' => 'Vehicle audio in your browser', 'talking' => 'Microphone on · sending to the vehicle', 'permission' => 'Allow microphone access in your browser.',
+    'microphone' => 'Microphone on · connecting to the speaker…', 'microphone_level' => 'Microphone level',
     'denied' => 'Microphone access denied. Allow it in your browser to speak.',
     'no_microphone' => 'No microphone available.', 'unsupported_browser' => 'This browser does not support live audio.',
     'unavailable' => 'Audio is unavailable. Try again.', 'offline' => 'The camera is not connected.',
@@ -12,5 +13,5 @@ return [
     'unsupported' => 'This camera’s audio format is not supported yet.',
     'disconnected' => 'Audio disconnected. Click to reconnect.', 'paused' => 'Audio stopped.',
     'volume' => 'Listening volume', 'realtime' => 'Real-time audio; the video picture may be delayed.',
-    'video_pause' => 'Channel 1 is suspended during the conversation and resumes after the microphone is stopped.',
+    'video_pause' => 'During a conversation, some video channels are paused and resume after the microphone is stopped.',
 ];

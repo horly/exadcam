@@ -15,7 +15,14 @@ export function log(event, data = {}) { console.log(JSON.stringify({ time: new D
 export async function post(url, data) {
     const response = await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify(data), signal: AbortSignal.timeout(10000) });
-    if (!response.ok) { const error = new Error(`Service returned ${response.status}`); error.status = response.status; throw error; }
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        const error = new Error(`Service returned ${response.status}`); error.status = response.status;
+        if (body.code === 'device_rejected' && Number.isInteger(body.result) && body.result >= 1 && body.result <= 4) {
+            error.code = body.code; error.result = body.result;
+        }
+        throw error;
+    }
     return response.json();
 }
 export function registry(kind, terminal) {
@@ -48,7 +55,7 @@ export function internalServer(port, handler, mediaHandler) {
             if (req.method !== 'POST') return reply(res, 405, { error: 'Method not allowed' });
             return await handler(req, res, url.pathname, await readJson(req));
         } catch (error) {
-            if (!res.headersSent) reply(res, [403, 404, 409].includes(error.status) ? error.status : 503, { error: 'Request failed' });
+            if (!res.headersSent) reply(res, [403, 404, 409, 422].includes(error.status) ? error.status : 503, { error: 'Request failed', ...(error.code === 'device_rejected' ? {code:error.code,result:error.result} : {}) });
             else res.destroy();
             log('request_failed', { reason: error.message });
         }

@@ -1,7 +1,7 @@
 <?php
 
 return array_merge([
-    'client_search' => 'Name, model, vehicle…',
+    'client_search' => 'Vehicle, registration, fleet…',
     'client_description' => 'View dashcams and camera channels in your fleet.',
     'fleet_scope' => 'Your fleet',
     'fleet_scope_hint' => 'Your workspace only shows data from your assigned fleet.',
@@ -19,6 +19,7 @@ return array_merge([
     'waiting' => 'Live video', 'ready' => 'Playing live video', 'stopped' => 'The video session has ended.',
     'reconnecting' => 'Live video · reconnecting automatically', 'paused' => 'Video paused',
     'unavailable' => 'The service is unavailable or the camera did not respond. Try again shortly.',
+    'device_rejected' => 'The camera rejected the live request. Please try again shortly.',
     'offline' => 'This dashcam is not connected to EXADCAM.', 'required' => 'Complete this field.',
     'invalid_imei' => 'The IMEI must contain exactly 15 digits.', 'invalid_number' => 'Check the entered value.',
     'alias_conflict' => 'This communication identifier is already assigned to a device.',

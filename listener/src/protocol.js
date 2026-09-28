@@ -54,17 +54,26 @@ export function decode808(frame) {
 export class Frames808 {
     pending = Buffer.alloc(0);
     push(chunk) {
+        // Bound each TCP read separately from the unfinished frame. A valid
+        // 64 KiB read can follow a partial frame during ES500 multimedia bursts.
+        if (chunk.length > 65536) throw new Error('GPS buffer limit');
         this.pending = Buffer.concat([this.pending, chunk]);
-        if (this.pending.length > 65536) throw new Error('GPS buffer limit');
+        // 2019 header + fragment fields + maximum body + checksum, all escaped,
+        // plus the two delimiters. No individual JT808 wire frame can be larger.
+        const maxFrameBytes = 2 * (17 + 4 + 1023 + 1) + 2;
         const frames = [];
         while (this.pending.length) {
             if (this.pending[0] !== 0x7e) throw new Error('Invalid frame start');
             const end = this.pending.indexOf(0x7e, 1);
             if (end === -1) break;
             if (end === 1) { this.pending = this.pending.subarray(1); continue; }
+            if (end + 1 > maxFrameBytes) throw new Error('GPS frame limit');
             frames.push(decode808(this.pending.subarray(0, end + 1)));
             this.pending = this.pending.subarray(end + 1);
         }
+        if (this.pending.length > maxFrameBytes) throw new Error('GPS frame limit');
+        // Release the drained read rather than retaining it through a subarray.
+        this.pending = Buffer.from(this.pending);
         return frames;
     }
 }

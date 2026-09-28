@@ -29,18 +29,20 @@ class DashcamController extends Controller
         $search = mb_substr(trim((string) $request->query('search')), 0, 100);
         if ($search !== '') {
             $query->where(function ($query) use ($search, $platform) {
-                foreach ($platform ? ['name', 'imei', 'model', 'terminal_id_2013'] : ['name', 'model'] as $column) {
+                foreach ($platform ? ['name', 'imei', 'model', 'terminal_id_2013'] : [] as $column) {
                     $query->orWhere($column, 'like', '%'.$search.'%');
                 }
                 $query->orWhereHas('vehicle', fn ($vehicle) => $vehicle->where('name', 'like', '%'.$search.'%')->orWhere('registration_number', 'like', '%'.$search.'%'))
                     ->orWhereHas('vehicle.fleet', fn ($fleet) => $fleet->where('name', 'like', '%'.$search.'%'));
             });
         }
-        if (in_array($request->query('model'), DashcamProfile::MODELS, true)) {
-            $query->where('model', $request->query('model'));
+        $requestedModel = $request->query('model');
+        $model = is_string($requestedModel) ? DashcamProfile::canonicalModel($requestedModel) : null;
+        if ($platform && in_array($model, DashcamProfile::MODELS, true)) {
+            $query->whereIn('model', [$model, DashcamProfile::listenerModel($model)]);
         }
         $sort = in_array($request->query('sort'), ['id', 'name', 'imei', 'model', 'enabled', 'last_seen_at'], true) ? $request->query('sort') : 'id';
-        if (! $platform && $sort === 'imei') {
+        if (! $platform && in_array($sort, ['imei', 'model', 'name'], true)) {
             $sort = 'id';
         }
         $direction = $request->query('direction') === 'asc' ? 'asc' : 'desc';
@@ -51,7 +53,9 @@ class DashcamController extends Controller
         $html = view('dashcams.table', compact('dashcams', 'sort', 'direction'))->render();
         if (! $platform) {
             $dashcams->getCollection()->each(function ($camera): void {
-                $camera->setVisible(['id', 'name', 'model', 'enabled', 'channels', 'last_seen_at', 'vehicle_id', 'vehicle']);
+                $camera->setAttribute('name', $camera->vehicle?->name ?? __('dashcams.title'));
+                $camera->setAttribute('video_fit', $camera->videoFit());
+                $camera->setVisible(['id', 'name', 'video_fit', 'enabled', 'channels', 'last_seen_at', 'vehicle_id', 'vehicle']);
                 $camera->vehicle?->setVisible(['id', 'name', 'registration_number', 'fleet_id', 'fleet']);
                 $camera->vehicle?->fleet?->setVisible(['id', 'name']);
             });
@@ -100,7 +104,7 @@ class DashcamController extends Controller
                 'video_terminal_id' => ['sometimes', 'string', 'regex:/^(?:[0-9]{12}|[0-9]{20})$/', Rule::unique('dashcams')->ignore($dashcam)],
                 'protocol_version' => ['prohibited'], 'transport' => ['prohibited'], 'imei' => ['prohibited'], 'vehicle_id' => ['prohibited'], 'communication_id' => ['prohibited'],
             ]);
-            if ($dashcam->model === 'ES500-603') {
+            if ($dashcam->isSmartVision()) {
                 $merged = [...$dashcam->getAttributes(), ...$data];
                 validator($merged, [
                     'video_terminal_id' => [Rule::in([$merged['terminal_id_2013']])],
@@ -217,6 +221,7 @@ class DashcamController extends Controller
         } catch (ConnectionException) {
             abort(503, __('dashcams.unavailable'));
         }
+        abort_if($response->status() === 422 && $response->json('code') === 'device_rejected', 422, __('dashcams.device_rejected'));
         abort_unless($response->successful(), $response->status() === 409 ? 409 : 503,
             $response->status() === 409 ? __('dashcams.offline') : __('dashcams.unavailable'));
 

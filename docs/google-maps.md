@@ -284,3 +284,167 @@ FleetMap/DashboardMap et 134 assertions, syntaxe JavaScript réussis. Navigateur
 local : ancrage -50 %/-50 % confirmé dans le DOM, trace reliée à la flèche sur
 un segment vertical puis diagonal avec des positions de test SQLite isolées.
 La validation locale ne constitue pas un nouvel essai routier réel.
+
+## Carte mobile/tablette et changement d’onglet — 23 septembre 2026
+
+Demande : conserver le véhicule sélectionné au centre sur mobile/tablette et
+éviter la disparition du panneau vidéo lors du passage à un autre onglet du
+navigateur. L’utilisateur reporte explicitement le diagnostic réseau ES500.
+
+Causes corrigées : le suivi utilisait panTo au centre du canevas entier, alors
+que le cadrage initial réservait une marge pour les filtres. Sur petit écran,
+les marges pouvaient même dépasser la largeur de la carte. Le redimensionnement
+ne réappliquait pas le suivi. En parallèle, visibilitychange appelait closeVideo
+dès que document.hidden devenait vrai.
+
+Le cadrage et le suivi partagent désormais des marges calculées sur la surface
+réelle de la carte. La caméra suit la même position animée que le marqueur,
+sans seconde animation de déplacement qui prend du retard. ResizeObserver,
+resize, visualViewport et plein écran recalculent le cadrage sans remettre le
+zoom à zéro. Sur un écran trop étroit, sélectionner un véhicule ou réduire la
+largeur replie les filtres pour dégager la carte. Le glissement manuel conserve
+la suspension du suivi et la vue de tous les véhicules reste collective.
+Le panneau vidéo mobile dispose d’une hauteur de carte effective de 38 % ;
+la hauteur minimale excessive en paysage est supprimée.
+
+Changer d’onglet suspend seulement les actualisations GPS. Les lecteurs et
+leurs sessions restent actifs. Au retour, renouvellement immédiat du bail sans
+requête concurrente ; reprise si le navigateur a suspendu le lecteur, respect
+d’une pause manuelle, et reconnexion automatique si le bail a expiré. Les
+contrôles serveur et la réserve vidéo de quinze secondes restent inchangés.
+Fermer le panneau, changer de véhicule, quitter la rubrique Carte ou fermer
+la page libère toujours les sessions. Le microphone ne redémarre pas en arrière-plan.
+
+Fichiers : public/js/google-map.js, map-view.mjs (nouveau), map-video.mjs,
+live-player.mjs, public/css/google-map.css, partials/dashboard-map.blade.php
+et tests JavaScript correspondants. Ressources versionnées map-responsive-1.
+
+Validation : suite JavaScript locale de 57 tests réussis ; tests Laravel ciblés
+FleetMapTest et DashboardMapTest : 16 tests, 134 assertions. Après le dernier
+ajustement de repli à la rotation : syntaxe google-map.js et 15 tests de suivi/
+géométrie rejoués avec succès. En production, 32 tests JavaScript ciblés passent.
+Aucune suite PHP complète ni suite du listener exécutée pour ce lot.
+
+Aperçu local SQLite isolé : à 390 × 844, marqueur centré à moins de 0,01 px
+avec et sans volet vidéo ; à 768 × 1024, même centrage dans le volet carte
+réduit ; filtres ouverts, centre attendu et mesuré à x=550, y=550.
+Production : même vérification à 390 × 844, repli automatique des filtres et
+écart nul horizontalement. Une caméra réelle a été utilisée pour le contrôle
+vidéo ; aucun microphone ni écoute audio activé pour cet essai.
+
+Déployé le 23 septembre à 18:03:01 UTC, neuf fichiers avec vérification des
+empreintes et sauvegarde /var/backups/exadcam-map-responsive-20260923-180301.
+Vues Blade recompilées et PHP-FPM rechargé. Aucun redémarrage GPS, vidéo ou
+audio, aucune migration, aucune suppression du cache applicatif.
+
+Limite : le système mobile peut suspendre entièrement un onglet en arrière-plan ;
+le correctif conserve le panneau et permet la reprise au retour, mais ne peut
+garantir une lecture pendant la suspension du navigateur par le système.
+La tenue de connexion ES500 reste un diagnostic séparé, reporté par l’utilisateur.
+
+Référence : [projection et cadrage Google Maps](https://developers.google.com/maps/documentation/javascript/reference/map).
+
+Contrôle final du navigateur Chromium : à 768 × 1024 avec vidéo, carte de
+445,45 × 948 px et écart du marqueur au centre de 0 px sur les deux axes.
+Canal 2 ES500 réel en lecture, readyState=4, paused=false, panneau toujours
+visible, aucune nouvelle action Lecture. Une première observation a comporté
+une reconnexion automatique : le journal serveur confirme source_disconnected,
+puis start_failed et une nouvelle demande vidéo, indépendamment du correctif
+d’onglet. Lors du second contrôle, la source média est conservée et le temps
+de lecture progresse jusqu’à 119,6 secondes. Ne pas confondre cela avec un
+test d’endurance de connexion ES500.
+
+Limite de l’automatisation navigateur : les commandes de sélection d’onglet
+ne donnent pas un état document.hidden=true observable avec cet outil ; le
+cas visibilitychange est donc vérifié par les tests d’événements, sans prétendre
+avoir validé la suspension physique d’un téléphone. Aucun réglage permanent du
+navigateur modifié ; l’override de dimensions et les onglets de contrôle sont
+supprimés en fin d’essai.
+
+
+## 24 septembre 2026 — Ligne solidaire de l’ancre du marqueur
+
+map-trail-2 remplace la Polyline Google distincte par un SVG positionné à 50 % / 50 %
+dans le contenu du marqueur 34×36. Flèche, étiquette et ligne partagent ainsi le même
+déplacement du moteur Google. La trace est projetée en pixels Mercator relatifs au
+GPS affiché, se termine exactement à (0,0), et reste derrière le symbole. Aucun
+point anticipé ou inventé : map-motion conserve ses règles de trajets reçus.
+Zoom et changement de position recalculent les points ; pointer-events:none,
+aria-hidden, suppression avec le marqueur. Fond raster et caméra sans rotation.
+
+Fichiers : map-marker-trail.mjs (nouveau), google-map.js, google-map.css et partial
+dashboard-map.blade.php. Trois nouveaux tests géométrie/DOM ; suite JS 60/60.
+Vérification navigateur avec trajet fictif, dimensions 390×844 et 768×1024 :
+écart origine de ligne / centre flèche 0 px sur les deux axes. Contrôle des virages.
+Déployé à 08:18:41 UTC, sauvegarde camera-fixes-20260924-081841.
+
+
+
+## 25 septembre 2026 — Carte responsive et deux canaux en plein écran
+
+La page Carte occupe maintenant la hauteur restante sous la barre supérieure,
+y compris lorsque celle-ci passe sur deux lignes. Le panneau vidéo s'adapte à
+la largeur réelle disponible après le menu latéral. Sur téléphone portrait et
+tablette étroite, la carte garde 36 % de la hauteur et les vidéos défilent dans
+leur propre panneau ; en paysage court, les deux zones restent côte à côte.
+Les filtres peuvent recouvrir le volet vidéo sur les petits écrans sans être
+limités à la petite hauteur de la carte. Le redimensionnement conserve le
+suivi existant du véhicule sélectionné.
+
+Bouton « 2 écrans » dans l'en-tête des vidéos : les deux lecteurs existants
+occupent une seule surface, deux colonnes en paysage, deux lignes en portrait.
+« Réduire » ou Échap revient au panneau ; la croix ferme toujours les vidéos.
+L'API Fullscreen est demandée au clic, avec repli plein navigateur si elle est
+indisponible/refusée. Aucun déplacement ni remplacement des éléments vidéo,
+aucune nouvelle session ou demande caméra lors de cette bascule. Un seul canal
+configuré utilise toute la grille. Navigation clavier, focus initial/restauré,
+arrière-plan inert et restitution des attributs sont gérés. Une autorisation
+plein écran tardive ne peut pas rouvrir un panneau déjà fermé.
+
+Le format horizontal JK114 reste corrigé dans une zone 16:9 centrée, même
+quand la cellule plein écran possède une autre proportion. ES500 garde son
+format contain. Les contrôles audio existants restent présents ; leur moteur,
+leurs réglages et leurs services ne sont pas modifiés par ce lot.
+
+Fichiers : public/css/google-map.css, public/js/google-map.js,
+public/js/map-video-fullscreen.mjs (nouveau), partial dashboard-map.blade.php,
+lang/fr/map.php et lang/en/map.php. Version navigateur map-layout-20260925.
+Nouveau test local : tests/js/map-video-fullscreen.test.mjs.
+
+Contrôles effectivement exécutés sur la version finale : 74 tests JavaScript
+réussis, dont huit sur la nouvelle présentation et le dimensionnement ; 17 tests
+PHP ciblés / 126 assertions (DashboardMapTest, DashboardVideoTest, LiveAudioTest)
+avec SQLite en mémoire et caches de test séparés. Syntaxe JS et traductions PHP
+vérifiées. Pas de suite PHP complète ni de test listener pour ce lot d'interface.
+
+Aperçu local rendu depuis les vrais partials et styles, avec deux flux canvas
+de test : 320×568, 390×844, 844×390, 768×1024, 1024×768, 1366×768.
+Aucun dépassement de la page aux dimensions contrôlées ; défilement interne
+du volet préservé. Les deux flux gardent leurs sources et leurs temps de lecture
+continuent après entrée/sortie. Le cas 320×568 initialement trop étroit a été
+corrigé puis revérifié, ainsi que les filtres et le paysage 844×390. Ce sont
+des dimensions de navigateur, pas des essais sur six appareils physiques.
+
+Déploiement de six fichiers le 25 septembre à 11:17:48 UTC (12:17:48 Kinshasa),
+empreintes avant/après contrôlées, sauvegarde :
+/var/backups/exadcam-map-layout-20260925-111748.
+Vues Blade recompilées et PHP-FPM rechargé. GPS PID 156157, vidéo PID 165314,
+audio PID 167293 inchangés. Aucune migration ni purge des baux/cache métier.
+Les trois ressources JS/CSS publiques répondent HTTP 200 avec les empreintes
+attendues. Une page déjà ouverte nécessite un vrai rechargement, pas seulement
+une nouvelle navigation vers le même fragment #map.
+
+Contrôle en production après rechargement : les deux canaux réels JK114 du
+Hilux 0210BW01 sont en lecture dans le panneau agrandi (1536×730, deux cellules
+de 751×552,6). readyState=4 et paused=false sur les deux. Après « Réduire »,
+sources média identiques et temps de lecture progressant de 112,48 à 132,40 s
+et de 89,50 à 109,42 s. Aucune écoute ni microphone activé. Le panneau de test
+est ensuite fermé pour libérer ses deux sessions. Ce contrôle ne prétend pas
+valider la nouvelle intermittence audio ES500 ni la suspension d'un mobile.
+
+
+Complément du 25 septembre 2026 : à la demande explicite « deploie tout »,
+les documents de ce lot et tests/js/map-video-fullscreen.test.mjs sont aussi
+synchronisés sur le serveur EXADCAM. Les huit tests ciblés passent sur Linux.
+Les six fichiers applicatifs sont vérifiés identiques, sans nouveau déploiement
+fonctionnel ni redémarrage des services caméra.

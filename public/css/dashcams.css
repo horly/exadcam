@@ -7,7 +7,7 @@
 .dashcam-actions .form-select { width: 70px; min-height: 33px; font-size: 11px; border-color: #dfe7f1; }
 .dashcam-actions .btn { white-space: nowrap; min-height: 33px; font-size: 11px; padding: 6px 11px; }
 .dashcam-filters { flex-wrap: wrap; }
-.dashcam-filters > .form-select { width: 160px; font-size: 12px; min-height: 40px; border-color: #e0e7f0; }
+.dashcam-filters > .form-select { width: 260px; max-width: 100%; font-size: 12px; min-height: 40px; border-color: #e0e7f0; }
 .dashcam-filters .users-search { max-width: 440px; }
 .dashcam-profile { background: #f4f7fc; border: 1px solid #e0e8f3; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
 .dashcam-profile .form-label { color: #203d65; }
@@ -20,7 +20,7 @@
 .dashcam-unassigned { font-size: 10px; color: #9b752d; background: #fff7e9; border-radius: 5px; padding: 5px 8px; }
 @media(max-width: 575px) { .dashcam-filters .users-search { max-width: none; } .dashcam-filters .users-page-size { margin-left: 0; } .users-toolbar { flex-wrap: wrap; } }
 
-#dashcam-live-modal[data-camera-model="JK114"] #dashcam-live-player { object-fit: fill; }
+#dashcam-live-modal[data-video-fit="fill"] #dashcam-live-player { object-fit: fill; }
 
 .dashcam-live-screen { position: relative; background: #182c44; border-radius: 8px; overflow: hidden; }
 .dashcam-live-screen video { display: block; }

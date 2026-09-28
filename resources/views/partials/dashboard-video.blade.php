@@ -25,9 +25,9 @@
         </div>
     </div>
 </section>
-@push('styles')<link rel="stylesheet" href="{{ asset('css/dashboard-video.css') }}?v=dashboard-real-1">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/dashboard-video.css') }}?v=talk-direction-20260924">@endpush
 @push('scripts')
 <script id="dashboard-video-config" type="application/json">{!! \Illuminate\Support\Js::encode(['vehicles' => $dashboardVideo, 'baseUrl' => url('/dashcams'), 'labels' => trans('dashboard-video')]) !!}</script>
-<script type="module" src="{{ asset('js/dashboard-video.mjs') }}?v=audio-3"></script>
+<script type="module" src="{{ asset('js/dashboard-video.mjs') }}?v=talk-direction-20260924"></script>
 @endpush
 @endif

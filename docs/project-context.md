@@ -1,6 +1,242 @@
 # Contexte de développement EXADCAM
 
-Décisions confirmées au 23 septembre 2026.
+> Nomenclature corrigée et déployée le 28 septembre, données existantes migrées :
+> JK114 → ESTON ES500-603 JK114 ; ES500-603 → 4G SmartVision JT808/1078.
+> Les anciennes clés subsistent uniquement dans le contrat interne des profils
+> des listeners, afin de préserver GPS, vidéo et interphone. Quatre fiches
+> corrigées sans changement de leurs réglages ni redémarrage des listeners.
+> Le changement de Backup du Hilux est reporté par l’utilisateur.
+
+
+> État vérifié le 28 septembre : Véhicule 2 conserve la même session GPS depuis
+> environ 64 heures, sans fermeture enregistrée et avec un contact reçu récemment.
+> Configuration de référence pour cet appareil : EXADCAM seul, Backup vide.
+> Le Hilux conserve son Backup selon l’utilisateur ; il est en ligne au contrôle,
+> mais présente encore des expirations réseau et des remplacements de session.
+> Un essai du Hilux sans Backup reste à effectuer. La causalité du Backup seul
+> n’est pas démontrée : correctifs serveur également actifs depuis vendredi.
+> Les anciens contrôles ci-dessous sont historiques ; voir project-history.md.
+
+
+> Nouvelle configuration déclarée par l'utilisateur pour Véhicule 2 :
+> serveur principal EXADCAM conservé, IP et port Backup retirés. CarAssist
+> reste accessible à distance selon l'utilisateur ; session EXADCAM et contact
+> récent confirmés. Conserver ce nouveau contexte, sans restauration automatique
+> de l'ancien Backup. La cause des coupures et la stabilité durable restent
+> à établir ; ne pas attribuer la durée de session au changement sans son heure.
+
+> Dernier contrôle du lot : Véhicule 2 connecté ; le Hilux a encore fermé
+> sa liaison puis reste sans session GPS. Ne pas déclarer la stabilité résolue.
+> Les observations passives sont terminées. Voir la fin de project-history.md.
+
+> Déploiement demandé par « deploie » : délai initial et limite d'authentification
+> de 60 secondes désormais ACTIFS après redémarrage du service GPS.
+> Contrôle de santé réussi ; vidéo/audio actifs avec leurs processus conservés.
+> Véhicule 2 reconnecté ; Hilux toujours sans session au contrôle suivant.
+> Observateur différé arrêté, aucune activation de ce lot encore en attente.
+> La stabilité durable reste à confirmer. Voir la dernière entrée du journal.
+
+> Maintien SmartVision, 25 septembre : correctifs GPS/ACK et nettoyage vidéo
+> désormais ACTIFS après activation dans leurs fenêtres naturellement vides.
+> Aucune session établie n'a été coupée pour charger ces correctifs.
+> Politique TCP intégrée au GPS : sonde après 60 s de silence, intervalle 30 s,
+> 10 essais, sans présence fictive ni commande caméra périodique.
+> Le pont temporaire TCP s'est arrêté avec l'ancien processus GPS.
+> Des fermetures distantes et retours spontanés ont été observés avant cette
+> activation. La stabilité complète n'est PAS démontrée ; vérifier les nouvelles
+> sessions et leur durée. Détails dans la dernière entrée de project-history.md.
+
+> Consigne utilisateur : FX-4PVK est UNIQUEMENT un indice pour la recherche
+> Internet. Ne pas connecter le PC au Wi-Fi de la caméra et ne pas demander
+> cette connexion. Aucun accès Wi-Fi effectué ; sonde locale annulée/désactivée.
+> Recherche : CarAssist et Jt808service sont distincts ; l'adresse Backup de la
+> capture apparaît dans un manuel public. Basculement effectif et correction
+> de reconnexion NON prouvés. Voir la dernière entrée du journal.
+
+> Priorité confirmée : fiabiliser la liaison directe SmartVision → EXADCAM.
+> Aucune démarche fournisseur demandée ou envoyée. Le manuel T2 est confirmé.
+> Correctif des attentes de présence/autorisation désormais ACTIF.
+> La stabilité et le retour automatique durable restent à confirmer.
+> Voir les dernières entrées de project-history.md ; les indications de réveil
+> ci-dessous sont historiques.
+
+> Identification corrigée : Véhicule 2 et Hilux 9863BV01 sont des SmartVision /
+> CarAssist. L'utilisateur confirme le manuel SmartVision T2 comme référence.
+> Les anciens diagnostics « ES500 » portent sur ces appareils. Ne plus demander
+> de confirmation du manuel. La compatibilité d'un nouveau firmware et l'API
+> de réveil restent à vérifier. Voir [identification](smartvision-identification.md).
+
+
+Décisions confirmées au 25 septembre 2026.
+
+Lot GPS précédent : les erreurs temporaires du service web ne ferment plus
+les sessions déjà authentifiées ; les vrais accusés de réception actualisent
+aussi la présence. Une cause de coupure côté EXADCAM est identifiée et reproduite
+(503 pendant une indisponibilité web). Déploiement 2026-09-25T12:03:47.300138+00:00,
+22 tests GPS/protocole Linux réussis ; vidéo/audio inchangés. Les autres
+fermetures ES500 et le réveil cloud restent distincts et non résolus par ce lot.
+Voir docs/es500-auto-return.md et la dernière entrée du journal.
+
+Complément demandé par « deploie tout » : les trois documents de suivi et le
+nouveau test plein écran sont synchronisés sur le serveur EXADCAM ; les six
+fichiers applicatifs sont vérifiés identiques. Huit tests ciblés passent sur
+Linux. Aucun redémarrage des services caméra. Voir la dernière entrée du journal.
+
+Dernier lot interface : carte responsive et bouton « 2 écrans », déployé le
+25 septembre à 11:17:48 UTC. Plein écran des deux lecteurs sans recréer leurs
+sessions : côte à côte en paysage, superposés en portrait, repli plein navigateur.
+Hauteur sous la barre supérieure et largeur réellement disponible prises en
+compte. 74 tests JS et 17 tests PHP ciblés / 126 assertions réussis ; six tailles
+de navigateur vérifiées avec des flux de test. Sauvegarde map-layout-20260925-111748.
+Services GPS/vidéo/audio inchangés. Voir docs/google-maps.md et le journal.
+
+Attention : l’utilisateur a signalé une nouvelle panne de Parler ES500 après
+le lot audio ci-dessous. Son diagnostic a été interrompu par la demande CSS ;
+il reste ouvert. Le lot d'interface ne modifie pas l'audio. Les anciennes
+confirmations de restitution et de volume restent des observations datées.
+
+
+Dernier ajustement audio : JK114 à gain 2 (+6 dB), ES500 à gain 4 (+12 dB),
+limiteur conservé. Déployé le 24 septembre 2026 à 14:05:06 UTC ; douze tests
+Linux réussis, dont amplification AAC réelle. Audio PID 167293 ; GPS et vidéo
+inchangés. Relancer Parler pour appliquer. Voix sur Véhicule 2 confirmée par
+l'utilisateur ; appréciation des niveaux après amplification encore attendue.
+Voir la dernière entrée du journal. Les étapes précédentes suivent.
+
+
+Dernier lot audio : 24 septembre 2026 à 13:54 UTC, talk-direction-20260924.
+Parler envoie uniquement le microphone navigateur vers la caméra ; Écouter
+restitue le son de la caméra dans le navigateur. Niveau de microphone visible,
+gain ES500 porté à +12 dB avec limiteur. L'état d'envoi attend le premier paquet sortant.
+Véhicule 2 a repris l'audio : échange réel journalisé à 13:41 UTC, puis sonde
+silencieuse à 13:55:39 UTC avec envoi confirmé à 0,842 seconde. Zéro son de
+caméra renvoyé au navigateur en mode Parler. L'utilisateur confirme ensuite
+que sa voix sort bien de Véhicule 2, mais avec un niveau bas. Gain porté de
+2 à 4 à sa demande ; appréciation du nouveau niveau encore à confirmer.
+66 tests JS, 17 PHP ciblés / 126 assertions, 11 tests Linux/FFmpeg réussis.
+GPS 156157 et vidéo 165314 conservés. Aucun réglage caméra
+modifié. Voir la dernière entrée du journal et docs/live-audio.md.
+Les observations antérieures d'absence de connexion ci-dessous restent datées.
+
+
+Dernier lot client/audio : voir docs/project-history.md, entrée « Droits clients
+et interphone ES500 ». Création de véhicule limitée au superadmin côté serveur
+et interface ; clients sans nom/modèle/IMEI du matériel, y compris alertes.
+Popup client : Contact ACC Allumé/Éteint selon le dernier relevé.
+Interphone ES500 : réservation des deux canaux, attente initiale séparée de
+l’inactivité, gain micro +6 dB avec limiteur. Transport validé par silence sur
+l’ES500 Hilux 9863BV01 ; l’audibilité réelle nécessite un contrôle humain.
+Véhicule 2 : CarAssist Parler confirmé fonctionnel, mais EXADCAM ne reçoit pas
+de connexion audio après acceptation de la commande, même CarAssist fermé.
+Ne pas le déclarer réparé sur la seule base des tests logiciels ou de l’autre
+ES500. Le résultat de l’ultime transition est détaillé dans le journal.
+GPS conservé PID 156157, aucun réglage caméra modifié, aucun cache métier vidé.
+Les observations plus anciennes ci-dessous restent datées.
+
+
+Véhicule 2 EST REVENU AUTONOMEMENT : confirmation utilisateur sans action, et
+authentification réelle le 24 septembre à 11:59:14.198 UTC (12:59:14 Kinshasa).
+Cela survient 29 min 56,996 s après la coupure de test à 11:29:17.202 UTC.
+Session et nouvelles positions reçues aux contrôles 12:03:21, 12:05:06 et
+12:05:37 UTC ; dernier contact/GPS 12:05:37 au contrôle final. Aucune nouvelle
+fermeture de sa session dans la fenêtre observée. Ne plus le déclarer absent.
+
+Relecture des paramètres le 24 septembre à 12:03:55 UTC : les valeurs TCP
+initiales sont DÉJÀ rétablies dans la caméra, timeout 10 s/retransmissions 0.
+La sonde gardée de restauration n'a rien écrit, puisque l'état d'essai 30 s/3
+n'était plus présent. Aucun rollback supplémentaire en attente. La cause de
+ce retour des paramètres n'est pas établie ; ne pas attribuer la reconnexion
+à notre lecture ni aux paramètres expérimentaux. Pas de nouvelle coupure,
+aucun service redémarré, aucun média/micro ouvert ; inspecteur fermé.
+
+Diagnostic révisé : retour autonome désormais confirmé dans ce cas, mais long.
+Un mécanisme de temporisation du firmware est une piste, pas une cause démontrée.
+Ni délai garanti de 30 minutes, ni réveil cloud/retour rapide à la demande livré.
+Conserver la consigne de ne plus provoquer de coupures. Aucun monitoring en fond.
+Voir la dernière entrée du journal, docs/es500-auto-return.md et les preuves
+workspace analysis/es500-autonomous-return-20260924/. Aucun nouveau test automatisé
+dans ce contrôle opérationnel ; les résultats des lots précédents restent datés.
+
+Dernier lot livré : live-pipeline-20260924, 12:32:24 UTC le 24 septembre.
+Fragments HLS indépendants de 1 seconde pour JK114/ES500, avec recompression
+libx264 aux dimensions d'origine. Réserve initiale 4 s annoncée par le serveur,
+fallback ancien/copie 8 s, reprise après épuisement 15 s. Commande de départ
+sans ACK : demande conservée dans la limite d'inactivité 30 s, sans envoyer
+Stop prématurément ; contrôle des identités et des droits conservé.
+Mesure ES500 fiche 4 : réserve prête vers 12,823 s au lieu de 19,567 s ; caméra
+envoie seulement vers 8 s. Ce n'est pas une garantie de lecture immédiate.
+Véhicule 2 effectivement lu sur deux canaux avec reprise après interruptions.
+JK114 : envoi intermittent / commandes sans réponse pendant le test, lecture
+continue non validée. Pas de cause matérielle exacte attribuée.
+33 tests serveur réussis, puis 8 vidéo ciblés sur la dernière correction et
+64 tests JS. Seul exadcam-video relancé, PID 161604 ; GPS 156157 et audio
+151193 conservés. Aucun réglage caméra, aucun micro/écoute démarré par l'agent.
+Sauvegarde finale /var/backups/exadcam-live-pipeline-20260924-123223 ; état avant
+le lot dans /var/backups/exadcam-live-pipeline-20260924-122401.
+Voir docs/live-stream-startup.md et la dernière entrée du journal.
+
+Lot GPS précédent : TCP keepalive ES500 différé à cinq minutes, déployé le
+24 septembre à 10:25:49 UTC. Les observations courtes des essais 11:16–11:36
+et le contrôle 11:54 n'avaient pas montré de retour ; elles sont complétées par
+le retour autonome de 11:59. Backup original 119.23.78.106:6608 restauré par
+l'utilisateur avant la dernière coupure. Firmware des deux ES500 :
+PL_TW1-V1.1_4G_NCS_EN_2.2.31_2.3.7 (FX/T1).
+
+Défaut de présence distinct encore identifié sur fiche 4 : réponse 0x1003 réelle
+à 11:35:49 mais last_seen_at resté 11:31:12. Ne pas confondre socket existant,
+réponse authentifiée, contact en cache et retour d'une connexion absente.
+Réveil cloud CarAssist toujours non intégré, accréditation d'intégration ou
+protocole documenté manquant. Brouillon fournisseur conservé, non envoyé.
+
+Correctif précédent : conservation de la connexion ES500 authentifiée pendant le silence
+(suppression du délai applicatif de trois minutes), déployé le 2026-09-24T08:55:12.762848+00:00.
+La JK114 s’éteint normalement avec le moteur sur l’installation de l’utilisateur.
+Pour l’ES500 en veille prolongée, ouvrir CarAssist restaure aussi EXADCAM selon
+l’utilisateur. Requête de réveil côté application Android identifiée : relay,
+preview, wakeup=1, via le cloud CarAssist ; livekeep toutes les dix secondes.
+L'accès d'intégration et le transport cloud vers caméra restent à confirmer.
+Réveil automatique EXADCAM non intégré. Voir docs/carassist-wake.md.
+Ne pas assimiler absence de contact, veille et coupure réseau. Aucun statut en
+ligne fabriqué. Essai accompagné du 24 septembre : l'utilisateur ouvre le direct
+CarAssist de Véhicule 2, mais aucun retour EXADCAM observé pendant les cinq
+minutes suivantes (20 relevés). L'autre ES500 transmet normalement. Le statut
+de veille exact n'est pas mesuré ; réveil EXADCAM non validé. Voir le journal.
+
+Véhicule 2 reste immobilisé pour les prochains temps, selon l’utilisateur.
+Aucun déplacement requis pour tester la connexion ou la vidéo ; distinguer
+une position inchangée de l’absence de nouveaux messages et de session.
+
+Lot précédent déployé à 08:18:41 UTC : trace SVG contenue dans le marqueur,
+paquets microphone G.711 dimensionnés selon les capacités ES500, distinction
+des refus vidéo matériels et suppression du Stop envoyé après un refus explicite.
+Sauvegarde /var/backups/exadcam-camera-fixes-20260924-081841.
+L’utilisateur confirme désormais le retour haut-parleur sur JK114 et ES500.
+JK114 Hilux 0210BW01 : refus vidéo puis fermeture distante à 07:59:35 UTC ;
+toujours sans session EXADCAM au contrôle après déploiement. Deux serveurs
+simultanés confirmés par l’utilisateur, pas un serveur de secours.
+Ne pas présenter la vidéo de cette JK114 comme rétablie. Voir live-audio.md,
+google-maps.md et device-commissioning.md pour les preuves et limites.
+
+
+La carte conserve le véhicule sélectionné au centre de sa surface visible sur
+mobile/tablette, y compris lors des changements de dimensions et du volet vidéo.
+Changer d’onglet du navigateur conserve le panneau et la session vidéo ; au retour,
+le lecteur reprend ou renouvelle sa session après suspension du navigateur.
+Déploiement map-responsive-1 du 23 septembre à 18:03 UTC. Diagnostic ES500 repris
+le 24 septembre à partir des précisions sur la veille. Voir le journal.
+
+Correction ES500 du 23 septembre à 17:08 UTC : une rafale TCP valide pouvait
+dépasser à tort le tampon JT808 et fermer la connexion. Les limites portent
+désormais séparément sur la lecture TCP et la trame incomplète. Les 26 tests
+Linux du listener passent et le correctif est déployé, avec sauvegarde.
+Véhicule 2 est revenu à 17:20:22 UTC avec GPS et vidéos, puis sa liaison
+GPS s’est refermée côté distant à 17:25:14 UTC. Le rétablissement durable
+reste non résolu. À 17:38 UTC, un second correctif préserve une vidéo déjà
+établie si seule sa liaison GPS tombe ; accès et révocation restent contrôlés.
+Voir device-commissioning.md pour les preuves et les limites.
+L’utilisateur confirme l’écoute et le retour haut-parleur sur les deux modèles
+après le correctif de trames ES500 du 24 septembre.
+
 
 La flèche cartographique est ancrée par son centre sur la même coordonnée que
 l'extrémité de la trace. Les actualisations pendant l'animation conservent les
@@ -10,8 +246,8 @@ flux vidéo 1 ; l’interphone réserve ce canal, suspend sa vidéo puis la lib�
 l’arrêt du micro. Permission audio.talk et arrêt automatique de la capture.
 La réception AAC de la JK114 et G.711 de l’ES500 est confirmée avec la vidéo.
 L’écoute reprend automatiquement après coupure ; le micro reste arrêté. Les
-coupures de source ES500 persistent. Le retour haut-parleur sera testé plus
-tard par l’utilisateur. L’audio peut devancer l’image
+coupures de source ES500 restent étudiées. Le retour haut-parleur est confirmé
+par l’utilisateur sur les deux modèles. L’audio peut devancer l’image
 qui conserve sa réserve de quinze secondes. Voir docs/live-audio.md.
 
 Le tableau de bord utilise les données réelles et les alertes enregistrées,
@@ -906,3 +1142,215 @@ d'autorisation des liens et les regroupements propres au superadmin sont conserv
 Validation ciblée : 27 tests existants RealDashboard, DashboardVideo et
 FleetAdministration réussis, 221 assertions. Aucun test supplémentaire créé
 pour ces ajustements de vues ; aucune modification du calcul ou des flux vidéo.
+
+Contrôle après déploiement : l’autre ES500 (Toyota Hilux) se reconnecte à
+17:13:40 UTC, puis remplace sa session à 17:14:42. Au contrôle applicatif réel
+de 17:17:15 UTC, elle est en ligne, en parking, contact 17:17:07 et position
+17:17:06 UTC. Aucun nouveau `GPS buffer limit` observé depuis installation.
+La fenêtre est courte et ne constitue pas un test d’endurance.
+
+Véhicule 2 demeure hors ligne au même contrôle, dernier contact 15:44:10 UTC.
+L’utilisateur précise que sa première relance était une commande CarAssist,
+puis confirme un redémarrage physique vers 17:17 UTC. Au contrôle de 17:19:41 UTC,
+aucune nouvelle authentification de Véhicule 2, aucun nouveau rejet GPS et deux
+connexions établies seulement (JK114 et autre ES500). Une capture TCP/UDP 7808
+de 45 secondes après le redémarrage physique voit uniquement ces deux appareils.
+La stabilité longue durée et le rétablissement de Véhicule 2 ne sont pas validés.
+L’étape suivante, si l’absence persiste, est de relire les paramètres serveur
+effectivement appliqués sur cette caméra dans CarAssist. Ne pas répéter les
+redémarrages du service EXADCAM ni afficher artificiellement l’appareil en ligne.
+
+### Retour matériel confirmé — 23 septembre 2026, après 17:20 UTC
+
+Véhicule 2 s’authentifie de nouveau à 17:20:22.697 UTC, après le redémarrage
+physique confirmé par l’utilisateur. Au contrôle applicatif de 17:21:40 UTC :
+en ligne, contact 17:21:33 et position 17:21:32 UTC. Au contrôle de 17:24:06 UTC :
+contact 17:24:04 et position 17:24:03 UTC. Aucun nouveau rejet ni fermeture de
+sa session GPS dans cette fenêtre. Les points restent réels et ne sont pas
+remplacés par un statut forcé.
+
+Contrôle navigateur sur https://exadcam.app : Véhicule 2 est visible en ligne
+dans le tableau et le sélecteur. Les deux vidéos sont affichées et réellement
+lues en 960 × 540, readyState 4, paused=false, sans erreur média. Temps observés
+à 17:24 UTC : 56,12 s et 109,81 s. L’inspection visuelle confirme deux images
+de caméra. Aucun microphone ni session d’écoute n’a été activé pour cet essai.
+
+Autre ES500 : une nouvelle rafale 0x0801 déclenche la temporisation normale à
+17:22:06 UTC sans `GPS buffer limit`. La session a traité 410 messages, dont
+des positions après la rafale, avant d’être remplacée par une nouvelle connexion
+du même appareil à 17:22:24 UTC. Ce remplacement n’est pas une preuve de stabilité
+absolue. Au contrôle de 17:24 UTC, contact 17:23:58 et position 17:23:57 UTC.
+
+Le retour réseau et la vidéo de Véhicule 2 sont confirmés ; le défaut de tampon
+est corrigé et testé. La cause du long délai de reconnexion du firmware après
+fermeture n’est pas établie. La fenêtre de contrôle reste courte : ne pas promettre
+la disparition de toutes les coupures cellulaires ou caméra. Les 26 tests Linux
+réussis portent sur le listener ; aucune suite Laravel rejouée dans ce lot.
+
+### Essai prolongé non concluant et second correctif — 23 septembre 2026
+
+Le retour décrit ci-dessus n’a pas tenu : à 17:25:14.897 UTC, Véhicule 2 ferme
+sa session côté distant (`peer_closed`), après 293 secondes et 58 messages,
+sans temporisation de rafale ni rejet de tampon. Dernier contact 17:25:10 et
+position 17:25:09 UTC. L’utilisateur confirme une alimentation continue.
+La fermeture distante ne permet pas à elle seule de distinguer firmware,
+politique de connexion de l’appareil et événement du réseau. Elle reste inexpliquée.
+
+Le direct canal 1 avait été arrêté à 17:24:47 pour un interphone lancé depuis
+un autre client, hors onglet de diagnostic. Le son de cet interphone a continué
+après la coupure GPS, jusqu’à un arrêt explicite à 17:25:32, avec 4 163 trames
+reçues et 2 221 envoyées. Cela ne prouve pas l’audibilité physique du microphone.
+Le canal vidéo 2 a été arrêté par EXADCAM à 17:25:16 pour
+`authorization_or_source_lost` : le contrôle périodique exigeait encore la
+session GPS, même sur un socket média déjà authentifié et établi.
+
+Second correctif : pour un flux JT1078 déjà établi, la perte de JT808 seule
+ne ferme plus la vidéo. Les vérifications du registre, des canaux, de la
+configuration, des baux et de la révocation continuent toutes les 5 secondes.
+L’absence de données média reste limitée à 30 secondes. Les nouveaux flux
+et la première admission du socket média exigent toujours une liaison GPS
+authentifiée ; aucune ouverture anonyme et aucun statut GPS forcé.
+
+Fichiers : listener/src/video.js et listener/test/video.test.js. La nouvelle
+régression maintient une source vidéo TCP active, rend l’API GPS indisponible,
+franchit le contrôle périodique, vérifie HLS et renouvellement toujours actifs,
+refuse un nouveau canal, puis désactive le matériel et vérifie l’arrêt effectif.
+Suite complète du listener Linux rejouée après ce changement : 26 tests réussis,
+0 échec, 0 ignoré, 17,7 secondes. Aucune suite Laravel rejouée. Les essais physiques
+de continuité pendant une nouvelle coupure GPS restent à faire.
+
+Déployé à 17:38:27 UTC, redémarrage du service vidéo uniquement. Sauvegarde :
+/var/backups/exadcam-es500-media-20260923-173823. SHA-256 du code vidéo local,
+applicatif et runtime : 537c95a1d67869bce057048d3e835dde3784eac4c1f3b8b3796c43f7604cbdb3.
+
+Au contrôle applicatif final de 17:39:44 UTC, Véhicule 2 est hors ligne, sans
+nouvelle authentification depuis sa fermeture. L’autre ES500 est en ligne avec
+contact 17:39:35 et position 17:39:34 UTC. Les cinq services sont actifs. La
+capture GPS bornée de 10 minutes est terminée (1 239 paquets, aucune perte de
+capture noyau) ; données réservées à root dans la sauvegarde du premier correctif.
+Le résumé PCAP simplifié n’assemble pas les segments réordonnés : ses erreurs
+de décodage de capture ne constituent pas des rejets du listener en production.
+Les deux lecteurs de diagnostic ont été arrêtés explicitement et l’onglet fermé.
+
+État final : deux défauts serveur corrigés et sauvegardés, mais la stabilité
+de la connexion de Véhicule 2 n’est pas résolue. Ne pas annoncer une connexion
+durable ni demander des redémarrages successifs sans nouvelle hypothèse vérifiable.
+Les paramètres appliqués sur la caméra et son firmware restent à examiner pour
+expliquer la fermeture de sa liaison GPS et son absence de reconnexion autonome.
+
+
+## 25 septembre 2026 — Demande de passage ES500 en JT808 2019, non appliquée
+
+L'utilisateur indique que les appareils sont en ligne et demande de remplacer
+JT808 2013 par 2019, soupçonnant la version de contribuer à leur instabilité.
+Contrôle du code : decode808 choisit le format par le bit 0x4000 reçu ; les
+réponses utilisent cette version. ListenerController résout les identifiants
+2013 et 2019 sans imposer la valeur protocol_version de la fiche. Le serveur
+accepte donc déjà les deux formats. Le profil de provisionnement ES500 reste
+fixé à 2013 ; changer seulement ce champ ne commande pas le firmware et une
+édition de profil par le contrôleur peut en outre révoquer la session existante.
+
+Inspection ciblée du Jt808ConfigActivity de la version CarAssist disponible dans
+le workspace : le formulaire transmet adresses, ports, identités et paramètres
+de plaque ; aucune sélection de version n'est identifiée. Le champ version reçu
+est affiché en lecture. Cela ne prouve pas une impossibilité matérielle, mais
+ne fournit pas de commande vérifiée pour passer ces caméras en 2019.
+Recherche documentaire sans procédure constructeur applicable confirmée.
+
+Aucun changement de protocole, d'identifiant, de firmware ou de paramètres
+caméra exécuté. Aucune nouvelle coupure ou relance de service dans cette
+vérification. Pas de nouveaux tests : les 22 tests GPS/protocole du correctif
+précédent restent les résultats de ce lot. Une procédure ou un firmware officiel
+compatible a été demandé à l'utilisateur. Brouillon fournisseur non envoyé :
+workspace analysis/es500-stability-20260925/demande-jt808-2019.md.
+Le correctif 503 déjà déployé reste actif ; le passage matériel en 2019 et le
+réveil/reconnexion depuis une liaison fermée ne sont pas déclarés résolus.
+
+
+## 25 septembre 2026 — Complément de déploiement demandé
+
+Après « deploie », contrôle des empreintes du correctif GPS déjà installé dans
+le projet et dans le runtime. Les trois services sont actifs, les sources GPS
+passent le contrôle de syntaxe et le service de santé GPS répond HTTP 200.
+Complément installé : note de compatibilité JT808 2019 et brouillon technique
+fournisseur non envoyé (docs/demande-jt808-2019.md). Aucun nouveau redémarrage,
+changement de firmware/protocole caméra, migration ni purge de cache.
+Les 22 tests GPS/protocole sont ceux du lot précédent, non rejoués ici.
+Le passage matériel en 2019 reste non appliqué faute de procédure compatible.
+Les journaux d'appareils restent sur le serveur ; aucun nouvel export local.
+
+
+## 25 septembre 2026 — Diagnostic complémentaire ES500 sans coupure
+
+L'utilisateur confirme le retour de Véhicule 2 après son réenregistrement du
+formulaire CarAssist, puis le fonctionnement de la vidéo. Il ne peut pas
+effectuer la même manipulation pour l'autre ES500 maintenant. Aucun changement
+de production, paramètre caméra ou redémarrage dans ce diagnostic. Deux tests
+de la nouvelle sonde de lecture seule passent ; preuves détaillées conservées
+sur le serveur. Le réveil d'une liaison JT808 fermée, le retour automatique
+rapide et la stabilité prolongée restent non résolus. Voir la dernière entrée
+de docs/es500-auto-return.md ; ne pas attribuer le retour au correctif 503.
+
+
+## 25 septembre 2026 — Manuel SmartVision T2 confirmé par l’utilisateur
+
+Confirmation explicite : « c'est le meme manuel que tu as trouvé tu peux utiliser ».
+Le manuel SmartVision T2 publié par Oranic est donc accepté comme référence pour
+les caméras CarAssist de Véhicule 2 et du Hilux 9863BV01. Cette confirmation lève
+la demande de nouvelles photos/pages du manuel ; ne pas la réitérer. Les mentions
+antérieures d'identification documentaire en attente sont dépassées par cette
+confirmation. Une compatibilité de firmware précis demeure à vérifier avant
+toute mise à jour matérielle.
+
+Manuel : https://www.oranic-tech.com/uploads/43575/files/%5BUser-Manual%5DT2.pdf
+Lecture des parties 1, 3 et 5 : JT808/JT1078, veille parking, fonctions CarAssist.
+Il ne contient pas de contrat API pour réveiller un appareil dont JT808 est fermé,
+ni de commande garantissant une reconnexion à un serveur tiers. La mention de
+veille n'établit pas à elle seule la cause de chaque coupure observée.
+
+Recoupement du code Android précédemment acquis : WebSocketUtil envoie wakeup=1
+avec preview, livekeep et settings ; la lecture settings inclut jt808.
+Les réglages génériques incluent autosleeptime, mais le support exact du firmware
+et l'effet sur JT808 restent non validés. Aucune écriture de veille tentée.
+Le canal cloud et son authentification restent nécessaires pour ces requêtes ;
+leur identification dans le code n'est pas une intégration livrée.
+
+Nouvelle recherche publique : pas de contrat API de réveil exploitable trouvé.
+Nouvel essai d'accès Windows via Computer Use : native pipe indisponible,
+os error 2 avant toute interaction. Aucune session ou donnée de compte extraite.
+Demande technique ciblée préparée : docs/demande-integration-smartvision.md,
+destinée au fournisseur SmartVision/CarAssist approprié, non envoyée.
+
+Contexte, identification, diagnostic de retour et réveil actualisés. Aucun code
+applicatif, profil stocké, configuration caméra ou service de production modifié.
+Aucun test applicatif exécuté. Réveil et reconnexion rapide toujours non résolus.
+
+## 2026-09-28 — Stabilité du week-end avec EXADCAM seul sur Véhicule 2
+
+- Retour utilisateur : Véhicule 2 ne se déconnecte plus depuis qu’il a conservé uniquement le serveur EXADCAM, avec le Backup retiré. Il confirme que le Backup reste configuré sur le Toyota Hilux 9863BV01. La suppression du Backup avait déjà été signalée le 25 septembre, avec accès distant CarAssist toujours fonctionnel.
+- Vérification du 28 septembre en lecture seule : Véhicule 2 conserve la même session GPS authentifiée depuis vendredi 25 septembre à 16 h 31 min 52 s, heure de Kinshasa, soit environ 64 heures. Aucune fermeture de cette session n’est enregistrée sur la période ; le contact reçu était âgé d’environ 5 secondes lors du contrôle. Ce constat repose sur la session réelle du listener et les journaux, pas uniquement sur le statut affiché dans l’interface.
+- Comparaison sur la même période : le Hilux est également en ligne au contrôle, mais les journaux enregistrent 165 authentifications et 164 fermetures de sessions, dont 105 remplacements par une nouvelle connexion, 54 expirations réseau, 4 fermetures par le pair et un retour de service 422. Ces nombres ne représentent pas 164 pannes utilisateur : un remplacement peut intervenir alors qu’une nouvelle connexion est déjà authentifiée. Aucun contenu détaillé des journaux ni position géographique n’est copié ici.
+- Configuration de référence validée en exploitation pour Véhicule 2 sur ce week-end : EXADCAM seul, Backup vide. Ne pas restaurer automatiquement l’ancien Backup. Pour le Hilux, un essai de cette même configuration est pertinent ; il n’a pas été effectué pendant ce contrôle et ne doit pas être présenté comme appliqué.
+- Interprétation : les observations renforcent la piste d’un effet de la configuration secondaire, sans isoler à elles seules sa causalité. Les correctifs du listener ont aussi été activés le vendredi et l’heure exacte du retrait du Backup n’est pas connue. La stabilité observée ne valide pas encore un retour après une nouvelle panne d’alimentation ou de réseau, ni la stabilité future de tous les appareils.
+- Aucun changement de code, déploiement, redémarrage, commande caméra, modification de paramètres ou nouvel essai de rupture. Aucun test automatisé relancé ; documentation locale mise à jour. Les anciens diagnostics restent conservés comme historique.
+
+## 28 septembre 2026 — Nomenclature des dashcams corrigée et déployée
+
+Demande utilisateur : corriger partout dans l’application les appellations et les données déjà enregistrées :
+
+| Ancienne appellation | Appellation désormais enregistrée et affichée |
+| --- | --- |
+| JK114 | ESTON ES500-603 JK114 |
+| ES500-603 | 4G SmartVision JT808/1078 |
+
+Les deux fiches de chaque famille ont été migrées en production : champs model et noms par défaut corrigés, aucun ancien model restant. Les éventuels noms personnalisés sont conservés. Migration également appliquée à la base MySQL locale EXADCAM. Les données historiques GPS et les associations véhicule/flotte restent inchangées. L’utilisateur reporte à plus tard son intervention sur le Backup du Hilux distant ; aucune configuration serveur de caméra n’a été modifiée dans ce lot.
+
+Réalisation : constantes et normalisation centralisées dans DashcamProfile, conversion des anciennes valeurs à la lecture/écriture du modèle Dashcam, validation compatible avec les formulaires déjà ouverts, filtres/recherche et affichage dans les listes, la carte, les détails, le tableau de bord et les alertes. Les traductions françaises/anglaises et les noms proposés à la création sont corrigés. Le filtre de modèle a été élargi et les versions des fichiers JS/CSS incrémentées.
+
+Compatibilité : les clés internes envoyées exclusivement aux listeners restent JK114 pour ESTON et ES500-603 pour SmartVision. Ce sont désormais des identifiants de profil historiques, pas les modèles affichés ni stockés en base. Cette correspondance explicite dans ListenerController préserve les politiques TCP, l’inactivité GPS, le cadrage, les paramètres vidéo et le gain microphone, sans redémarrer les listeners. Ne pas remplacer globalement ces clés internes par les appellations commerciales : toute évolution de ce contrat doit conserver le comportement des connexions actives.
+
+Migration 2026_09_28_090000_correct_dashcam_model_names.php : mise à jour ciblée et transactionnelle des noms/modèles avec query builder, sans événements Eloquent, sans modification des horodatages ni des identifiants de communication. Elle préserve les noms personnalisés, accepte une réexécution et dispose d’un retour arrière. Les sources et noms/modèles précédents ont été sauvegardés avant application ; preuves détaillées de production conservées sur le serveur.
+
+Validation réellement exécutée sur le code final : 65 tests ciblés réussis, 566 assertions, sur SQLite en mémoire isolée. Sont couverts le renommage/idempotence/retour arrière, la conservation de toutes les colonnes hors nom/modèle, les profils internes, les filtres, la carte, les détails, le tableau de bord et les permissions des comptes flotte. Suites : DashcamModelNamesTest, DashcamRegistryTest, ListenerAccessTest, FleetAdministrationTest, DashboardVideoTest et RealDashboardTest. Contrôle syntaxique JavaScript et syntaxe PHP des fichiers du lot réussi. Il ne s’agit pas d’une suite complète ni d’un nouvel essai physique du haut-parleur.
+
+Déploiement du 28 septembre réussi : 15 fichiers vérifiés/installés et migration ciblée appliquée. Quatre fiches vérifiées par comparaison des empreintes de leurs paramètres de communication et d’affectation : inchangés. Réponse HTTP réelle du résolveur interne : profils préservés pour les quatre équipements. Véhicule 2 et Hilux SmartVision connectés après migration. Les trois processus GPS/vidéo/audio sont conservés, sans redémarrage. Connexion web et ressource JS répondent HTTP 200. Seules les vues compilées ont été purgées ; aucun vidage du cache des baux vidéo. Recharger la page permet aux onglets déjà ouverts de récupérer les nouveaux formulaires et ressources.

@@ -72,6 +72,28 @@ test('registration floods still close unauthenticated connections without accept
     assert.equal(f.events.length, 0);
 });
 
+test('large multimedia reads keep the authenticated session available for subsequent GPS', { timeout: 8000 }, async t => {
+    const f = await fixture(t); await f.authenticate();
+    const location = Buffer.alloc(28);
+    location.writeUInt32BE(6, 4); location.writeUInt32BE(4300000, 8); location.writeUInt32BE(15300000, 12);
+    Buffer.from('260923120000', 'hex').copy(location, 22);
+    const burst = Buffer.concat([
+        ...Array.from({ length: 120 }, (_, i) => f.frame(0x0801, i + 2, Buffer.alloc(1023, 0x7e))),
+        f.frame(0x0200, 122, location),
+    ]);
+    f.socket.write(burst.subarray(0, 37));
+    await new Promise(resolve => setTimeout(resolve, 30));
+    f.socket.write(burst.subarray(37));
+    await f.until(() => f.replies.length === 121 || f.socket.destroyed);
+    assert.equal(f.socket.destroyed, false, 'TCP coalescing must not disconnect a valid device');
+    assert.equal(f.replies.length, 121);
+    // Archiving multimedia is still unsupported; do not claim these uploads were saved.
+    assert.ok(f.replies.slice(0, 120).every(reply => reply.body[4] === 3));
+    assert.equal(f.replies.at(-1).body[4], 0);
+    assert.equal(f.events.at(-1).position.recorded_at, '2026-09-23T11:00:00.000Z');
+    f.socket.write(f.frame(2, 123)); await f.until(() => f.replies.length === 122);
+});
+
 test('revocation is enforced while an authenticated burst is still queued', { timeout: 10000 }, async t => {
     const f = await fixture(t); await f.authenticate();
     f.socket.write(Buffer.concat(Array.from({ length: 600 }, (_, i) => f.frame(2, i + 2))));

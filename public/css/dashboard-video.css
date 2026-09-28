@@ -12,7 +12,7 @@ body[data-view="overview"] .dashboard-live-grid { grid-template-columns:minmax(0
 .dashboard-camera-channel .icon { width:15px; height:15px; flex-shrink:0; }
 .dashboard-camera-screen { position:relative; aspect-ratio:16/9; background:#1b2d44; border-radius:9px; overflow:hidden; }
 .dashboard-camera-screen video { display:block; width:100%; height:100%; object-fit:contain; background:#1b2d44; }
-.dashboard-camera-panel[data-camera-model="JK114"] video { object-fit:fill; }
+.dashboard-camera-panel[data-video-fit="fill"] video { object-fit:fill; }
 .dashboard-camera-placeholder { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:12px; color:#9bb0c9; text-align:center; padding:12px; font-size:10px; pointer-events:none; }
 .dashboard-camera-placeholder > .icon { width:24px; height:24px; }
 .dashboard-camera-placeholder .btn { display:flex; align-items:center; gap:6px; color:#fff; background:#34577f; border:1px solid #57789e; font-size:11px; padding:7px 12px; pointer-events:auto; }

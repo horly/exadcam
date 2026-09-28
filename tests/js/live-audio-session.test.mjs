@@ -37,7 +37,9 @@ test('listening opens no microphone and closes the owned lease with its graph',a
 test('talk sends PCM only after the device is ready and stops all microphone tracks',async()=>{
     const f=setup();await f.session.start('/dashcams/1/audio','talk');assert.equal(f.graph.send,undefined);
     f.socket.onmessage({data:JSON.stringify({state:'ready'})});const sample=new ArrayBuffer(1280);f.graph.send(sample);
-    assert.deepEqual(f.socket.sent,[sample]);assert.equal(f.states.at(-1)[0],'talking');
+    assert.deepEqual(f.socket.sent,[sample]);assert.equal(f.states.at(-1)[0],'microphone');
+    f.socket.onmessage({data:new ArrayBuffer(640)});assert.equal(f.graph.received,0,'Talk must never play camera audio');
+    f.socket.onmessage({data:JSON.stringify({state:'transmitting'})});assert.equal(f.states.at(-1)[0],'talking');
     await f.session.stop();assert.equal(f.tracks[0].stopped,1);f.graph.send(sample);assert.equal(f.socket.sent.length,1);
 });
 test('closing during browser permission stops the late microphone without opening a lease',async()=>{
@@ -61,6 +63,7 @@ test('a late session creation response is released after navigating away',async(
 test('revocation during heartbeat closes microphone and socket with no automatic microphone restart',async()=>{
     const f=setup({request:async url=>{if(url.endsWith('keepalive'))throw Object.assign(Error('Revoked'),{status:403});return {lease_id:'lease'};}});
     await f.session.start('/dashcams/1/audio','talk');f.socket.onmessage({data:JSON.stringify({state:'ready'})});
+    f.socket.onmessage({data:JSON.stringify({state:'transmitting'})});
     await [...f.timers.values()][0]();await tick();
     assert.equal(f.tracks[0].stopped,1);assert.equal(f.socket.closed,true);assert.equal(f.timers.size,0);assert.equal(f.states.at(-1)[0],'failed');
 });
@@ -89,4 +92,15 @@ test('closing cancels listening recovery and revoked listening never retries',as
     assert.equal(f.requests.filter(r=>r.url==='/dashcams/1/audio').length,1);assert.equal(f.timers.size,0);
     const denied=setup({request:async()=>{throw Object.assign(Error('Revoked'),{status:403});}});
     await denied.session.start('/dashcams/1/audio','listen');assert.equal(denied.states.at(-1)[0],'failed');assert.equal(denied.timers.size,0);
+});
+
+test('a ready camera without a microphone return never reports talking',async()=>{
+    const f=setup();await f.session.start('/dashcams/2/audio','talk');
+    f.socket.onmessage({data:JSON.stringify({state:'transmitting'})});
+    assert.equal(f.states.at(-1)[0],'connecting');
+    f.socket.onmessage({data:JSON.stringify({state:'ready'})});
+    assert.equal(f.states.at(-1)[0],'microphone');
+    const timeout=[...f.timers.values()][0];timeout();await tick();
+    assert.equal(f.states.at(-1)[0],'failed');assert.equal(f.tracks[0].stopped,1);
+    assert.equal(f.states.some(([state])=>state==='talking'),false);
 });

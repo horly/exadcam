@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Dashcam;
 use App\Services\AudioAccess;
+use App\Support\DashcamProfile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -31,7 +32,7 @@ class ListenerController extends Controller
         };
         $dashcam = Dashcam::where($field, $data['terminal'])->where('enabled', true)->firstOrFail();
 
-        return response()->json(['id' => $dashcam->id, 'imei' => $dashcam->imei,
+        return response()->json(['id' => $dashcam->id, 'imei' => $dashcam->imei, 'model' => DashcamProfile::listenerModel($dashcam->model),
             'video_terminal_id' => $dashcam->video_terminal_id, 'channels' => $dashcam->channels,
             'normalize_video_timestamps' => (bool) $dashcam->normalize_video_timestamps, 'frame_rate' => $dashcam->frame_rate, 'gps_timezone_minutes' => $dashcam->gps_timezone_minutes, 'auth_token' => $dashcam->auth_token])->header('Cache-Control', 'no-store');
     }

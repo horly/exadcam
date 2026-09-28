@@ -1,7 +1,7 @@
 <?php
 
 return array_merge([
-    'client_search' => 'Nom, modèle, véhicule…',
+    'client_search' => 'Véhicule, immatriculation, flotte…',
     'client_description' => 'Retrouvez les dashcams de votre flotte et leurs caméras.',
     'fleet_scope' => 'Votre flotte',
     'fleet_scope_hint' => 'Votre espace affiche uniquement les données de votre flotte.',
@@ -19,6 +19,7 @@ return array_merge([
     'waiting' => 'Direct vidéo', 'ready' => 'Vidéo en cours', 'stopped' => 'La session vidéo est terminée.',
     'reconnecting' => 'Direct vidéo · reprise automatique', 'paused' => 'Vidéo en pause',
     'unavailable' => 'Le service est indisponible ou la caméra n’a pas répondu. Réessayez dans quelques instants.',
+    'device_rejected' => 'La caméra a refusé la demande de direct. Réessayez dans quelques instants.',
     'offline' => 'La dashcam n’est pas connectée au serveur EXADCAM.', 'required' => 'Renseignez ce champ.',
     'invalid_imei' => 'L’IMEI doit contenir exactement 15 chiffres.', 'invalid_number' => 'Vérifiez la valeur saisie.',
     'alias_conflict' => 'Cet identifiant de communication est déjà utilisé par un équipement.',

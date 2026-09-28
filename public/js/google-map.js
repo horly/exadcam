@@ -4,10 +4,13 @@
     if (!configNode) return;
     const config = JSON.parse(configNode.textContent), labels = config.labels;
     if (!config.allowed) return;
+    const { createMarkerTrail } = await import('./map-marker-trail.mjs?v=map-trail-2');
     const { movementPath, pointAlong, bearing, trailThroughPosition, preferredTrackingVehicle } = await import('./map-motion.mjs?v=map-anchor-1');
-    const { MapVideoChannel } = await import('./map-video.mjs?v=live-reconnect-1');
-    const { audioControls } = await import('./live-audio.mjs?v=audio-3');
-    const {attachLivePlayer, resetLivePlayer} = await import('./live-player.mjs?v=live-reconnect-1');
+    const { MapVideoChannel } = await import('./map-video.mjs?v=live-pipeline-20260924');
+    const { viewportPadding, projectedCenter, observeMapView } = await import('./map-view.mjs?v=map-responsive-1');
+    const { audioControls } = await import('./live-audio.mjs?v=talk-direction-20260924');
+    const {attachLivePlayer, resetLivePlayer} = await import('./live-player.mjs?v=live-pipeline-20260924');
+    const {createVideoFullscreen,observeMapLayout} = await import('./map-video-fullscreen.mjs?v=map-layout-20260925');
     const element = id => document.getElementById(id);
     const vehicleAudio = audioControls(element('tracking-video-audio'));
     const workspace = element('tracking-workspace'), canvas = element('google-fleet-map');
@@ -20,6 +23,7 @@
     let infoWindow, popupVehicleId = null, popupFields = null, popupSubtitle = null, popupDot = null, videoVehicle = null, videoGeneration = 0;
     let initialFit = false, fitOnOpen = false, failures = 0, refreshDelay = 10000, searchTimer;
     const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim();
+    let mapPadding = {top:24,right:24,bottom:24,left:24}, resizeFrame = null, lastMapWidth = null;
     const active = () => !document.hidden && ['overview', 'map'].includes(document.body.dataset.view);
     const date = value => value ? new Intl.DateTimeFormat(config.locale, {dateStyle:'short',timeStyle:'medium'}).format(new Date(value)) : '—';
     function icon(name) {
@@ -69,7 +73,7 @@
         });
     }
     function drawTrail(item) {
-        item.trail.setPath(showTrails.checked ? trailThroughPosition(item.vehicle,item.displayed,item.path) : []);
+        item.trail.setPath(showTrails.checked ? trailThroughPosition(item.vehicle,item.displayed,item.path) : [], item.displayed);
     }
     function choose(id, center = true, popup = false) {
         if (selectedId !== id) void closeVideo();
@@ -78,7 +82,11 @@
         if (!popup) { infoWindow?.close(); popupVehicleId = null; }
         render(false);
         const vehicle = vehicles.find(item => item.id === id);
-        if (center && map && vehicle?.position) { fitFleet(); }
+        if (center && map && vehicle?.position) {
+            const panel = element('tracking-panel').getBoundingClientRect(), area = canvas.getBoundingClientRect();
+            if (!workspace.classList.contains('panel-collapsed') && area.right - panel.right < 280) togglePanel(true);
+            fitFleet();
+        }
         if (popup && vehicle?.position) openPopup(vehicle);
     }
     function glyph(vehicle) {
@@ -124,7 +132,7 @@
         if (!vehicle || popupVehicleId !== vehicle.id || !popupFields) return;
         popupSubtitle.textContent = [vehicle.online ? labels.online : labels.offline,vehicle.equipment?.imei].filter(Boolean).join(' · ');
         popupDot.dataset.online = String(Boolean(vehicle.online));
-        const fields = [[labels.registration,vehicle.registration], [labels.camera,vehicle.equipment?.model || vehicle.camera_name],
+        const fields = [[labels.registration,vehicle.registration], vehicle.equipment?.model ? [labels.camera,vehicle.equipment.model] : [labels.ignition,typeof vehicle.position?.ignition === 'boolean' ? (vehicle.position.ignition ? labels.ignition_on : labels.ignition_off) : '—'],
             [labels.fleet,vehicle.fleet.name], [labels.speed,vehicle.position.speed+' '+labels.kmh], [labels.contact_date,relativeDate(vehicle.last_seen_at)]];
         fillFields(popupFields, fields);
         popupFields.lastElementChild.title = date(vehicle.last_seen_at);
@@ -158,14 +166,13 @@
             // The glyph rotates around its centre: anchor that same point to GPS.
             const marker = new Marker({ map, position: vehicle.position, title: vehicle.name, anchorLeft:'-50%', anchorTop:'-50%', gmpClickable:document.body.dataset.view === 'map' }); marker.append(content);
             marker.addEventListener('gmp-click', () => { if (document.body.dataset.view === 'map') choose(vehicle.id,false,true); });
-            const trail = new google.maps.Polyline({ map, geodesic:true, strokeColor:'#487eae', strokeOpacity:0.75, strokeWeight:4, clickable:false });
+            const trail = createMarkerTrail(content, map, google.maps);
             item = {marker,content,label,symbol,trail,vehicle:null,animation:null,path:[],displayed:vehicle.position}; markers.set(vehicle.id,item);
         }
         item.marker.gmpClickable = document.body.dataset.view === 'map';
         item.content.dataset.state = vehicle.state; item.content.classList.toggle('is-selected',selectedId === vehicle.id);
         item.symbol.dataset.state = vehicle.state; item.symbol.textContent = vehicle.state === 'parking' ? 'P' : '';
         item.label.textContent = [vehicle.name,vehicle.registration].filter(Boolean).join(' '); item.marker.title = `${vehicle.name} · ${labels[vehicle.state]}`; item.marker.zIndex = selectedId === vehicle.id ? 100 : 1;
-        item.trail.setOptions({strokeColor:'#229bd8',strokeOpacity:0.65,strokeWeight:5});
         const route = vehicle.trail || [];
         const changed = !item.vehicle || item.vehicle.state !== vehicle.state || item.vehicle.source_id !== vehicle.source_id || item.vehicle.position?.at !== vehicle.position.at || item.vehicle.position?.lat !== vehicle.position.lat || item.vehicle.position?.lng !== vehicle.position.lng;
         if (changed) {
@@ -180,11 +187,11 @@
                     if (popupVehicleId === vehicle.id) infoWindow.setPosition(item.displayed);
                     drawTrail(item);
                     if (item.previousFrame.lat !== item.displayed.lat || item.previousFrame.lng !== item.displayed.lng) item.symbol.style.setProperty('--heading',bearing(item.previousFrame,item.displayed)+'deg'); item.previousFrame = item.displayed;
-                    if (follow.checked && !element('tracking-show-all').checked && selectedId === vehicle.id) map.panTo(item.displayed);
+                    if (follow.checked && !element('tracking-show-all').checked && selectedId === vehicle.id) centerPosition(item.displayed);
                     item.animation = progress < 1 && active() ? requestAnimationFrame(frame) : null;
                 };
                 item.animation = requestAnimationFrame(frame);
-            } else { item.displayed = vehicle.position; item.marker.position = vehicle.position; item.animation = null; if (popupVehicleId === vehicle.id) infoWindow.setPosition(item.displayed); if (follow.checked && !element('tracking-show-all').checked && selectedId === vehicle.id) map.panTo(item.displayed); }
+            } else { item.displayed = vehicle.position; item.marker.position = vehicle.position; item.animation = null; if (popupVehicleId === vehicle.id) infoWindow.setPosition(item.displayed); if (follow.checked && !element('tracking-show-all').checked && selectedId === vehicle.id) centerPosition(item.displayed); }
         }
         item.vehicle = vehicle;
         if (!item.animation && vehicle.state === 'moving' && route.length > 1) item.symbol.style.setProperty('--heading',bearing(route.at(-2),route.at(-1))+'deg');
@@ -210,10 +217,29 @@
         if (videoVehicle && !matches.some(v => v.id === videoVehicle.id && v.source_id === videoVehicle.source_id)) void closeVideo();
         if (!map) return;
         for (const [id,item] of markers) if (!ids.has(id) || !visible.find(v => v.id === id)?.position) {
-            if (item.animation) cancelAnimationFrame(item.animation); item.marker.map = null; item.trail.setMap(null); markers.delete(id);
+            if (item.animation) cancelAnimationFrame(item.animation); item.marker.map = null; item.trail.remove(); markers.delete(id);
         }
         visible.filter(vehicle => vehicle.position).forEach(vehicle => markerFor(vehicle,animate));
         if ((!initialFit || automaticFocus) && visible.some(v => v.position)) { fitFleet(); initialFit = true; }
+    }
+    function measureViewport() {
+        const area = canvas.getBoundingClientRect();
+        const panel = document.body.dataset.view === 'map' && !workspace.classList.contains('panel-collapsed')
+            ? element('tracking-panel').getBoundingClientRect() : null;
+        mapPadding = viewportPadding(area.width, area.height, panel ? panel.right - area.left : 0);
+    }
+    function centerPosition(position) {
+        const projection = map?.getProjection();
+        if (!projection || !position || !active()) return;
+        const point = projection.fromLatLngToPoint(new google.maps.LatLng(position.lat,position.lng));
+        const center = projectedCenter(point,map.getZoom(),mapPadding);
+        // Updating the camera with the animated marker avoids a second, lagging pan animation.
+        map.setCenter(projection.fromPointToLatLng(new google.maps.Point(center.x,center.y)));
+    }
+    function recenterSelection() {
+        if (!follow.checked || element('tracking-show-all').checked) return;
+        const selected = vehicles.find(vehicle => vehicle.id === selectedId);
+        centerPosition(markers.get(selectedId)?.displayed || selected?.position);
     }
     function fitFleet() {
         if (!map) return;
@@ -221,9 +247,10 @@
         const focused = !element('tracking-show-all').checked ? preferredTrackingVehicle(displayedVehicles, selectedId) : null;
         const visible = focused ? [focused] : displayedVehicles;
         if (!visible.length) return;
+        measureViewport();
+        if (focused) { map.setZoom(18); centerPosition(markers.get(focused.id)?.displayed || focused.position); return; }
         const bounds = new google.maps.LatLngBounds(); visible.forEach(vehicle => bounds.extend(vehicle.position));
-        const panelWidth = document.body.dataset.view === 'map' && !workspace.classList.contains('panel-collapsed') ? element('tracking-panel').offsetWidth + 36 : 30;
-        map.fitBounds(bounds,{top:65,right:65,bottom:65,left:panelWidth});
+        map.fitBounds(bounds,mapPadding);
         google.maps.event.addListenerOnce(map,'idle',() => { if (map.getZoom() > 18) map.setZoom(18); });
     }
     function mapFailed() { mapMessage.hidden = false; mapMessage.textContent = labels.unavailable; }
@@ -240,6 +267,8 @@
         const [{Map:GoogleMap},{AdvancedMarkerElement}] = await Promise.all([google.maps.importLibrary('maps'),google.maps.importLibrary('marker')]);
         Marker = AdvancedMarkerElement;
         map = new GoogleMap(canvas,{center:config.center,zoom:12,minZoom:3,maxZoom:20,mapId:config.mapId,renderingType:google.maps.RenderingType.RASTER,disableDefaultUI:true,cameraControl:false,streetViewControl:false,mapTypeControl:false,fullscreenControl:false,zoomControl:false,rotateControl:false,scaleControl:document.body.dataset.view === 'map',clickableIcons:false,gestureHandling:document.body.dataset.view === 'map' ? 'cooperative' : 'none',keyboardShortcuts:document.body.dataset.view === 'map',disableDoubleClickZoom:document.body.dataset.view !== 'map'});
+        map.addListener('projection_changed',() => { measureViewport(); recenterSelection(); });
+        map.addListener('zoom_changed',() => { markers.forEach(item => item.trail.redraw()); if (!popupVehicleId) recenterSelection(); });
         map.addListener('dragstart',() => { follow.checked = false; });
         map.addListener('zoom_changed',() => { element('tracking-zoom-in').disabled = map.getZoom() >= 20; element('tracking-zoom-out').disabled = map.getZoom() <= 3; });
         infoWindow = new google.maps.InfoWindow({maxWidth:350,headerDisabled:true});
@@ -276,7 +305,7 @@
     }
     function syncView() {
         clearTimeout(timer);
-        if (!active()) { void closeVideo(); requestSequence++; controller?.abort(); controller = null; stopAnimations(); return; }
+        if (!active()) { requestSequence++; controller?.abort(); controller = null; stopAnimations(); return; }
         if (config.apiKey && !loading) loading = createMap().catch(mapFailed);
         if (map) {
             const interactive = document.body.dataset.view === 'map';
@@ -284,14 +313,17 @@
             markers.forEach(item => { item.marker.gmpClickable = interactive; });
             if (!interactive) { infoWindow?.close(); popupVehicleId = null; void closeVideo(); }
         }
-        if (map) requestAnimationFrame(() => { google.maps.event.trigger(map,'resize'); if (fitOnOpen) { fitFleet(); fitOnOpen = false; } });
+        resizeMap();
         if (!generation || auto.checked) void refresh();
     }
-    function togglePanel(collapsed) {
+    function togglePanel(collapsed, moveFocus = true) {
         workspace.classList.toggle('panel-collapsed',collapsed);
         element('tracking-open-panel').setAttribute('aria-expanded',String(!collapsed));
         element('tracking-close-panel').setAttribute('aria-expanded',String(!collapsed));
-        if (!collapsed) element('tracking-search').focus(); else element('tracking-open-panel').focus();
+        if (moveFocus) {
+            if (!collapsed) element('tracking-search').focus({preventScroll:true}); else element('tracking-open-panel').focus({preventScroll:true});
+        }
+        resizeMap();
     }
     if (matchMedia('(max-width: 767px)').matches) workspace.classList.add('panel-collapsed');
     element('tracking-open-panel').addEventListener('click',() => togglePanel(false));
@@ -310,9 +342,12 @@
     element('tracking-zoom-out').addEventListener('click',() => { if (map) map.setZoom(Math.max(3,map.getZoom()-1)); });
     element('tracking-map-type').addEventListener('click',event => { if (!map) return; const satellite = map.getMapTypeId() !== 'hybrid'; map.setMapTypeId(satellite ? 'hybrid' : 'roadmap'); event.currentTarget.setAttribute('aria-pressed',String(satellite)); });
     element('tracking-fullscreen').addEventListener('click',async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await workspace.requestFullscreen(); } catch { feedMessage.hidden = false; feedMessage.textContent = labels.fullscreen_failed; } });
-    document.addEventListener('fullscreenchange',() => { if (map) google.maps.event.trigger(map,'resize'); });
-    document.addEventListener('visibilitychange',syncView);
-    document.addEventListener('exadcam:view-changed',event => { fitOnOpen = event.detail.view === 'map'; syncView(); });
+    document.addEventListener('fullscreenchange',resizeMap);
+    window.addEventListener('resize',resizeMap);
+    window.visualViewport?.addEventListener('resize',resizeMap);
+    const mapResizeObserver = new ResizeObserver(resizeMap);
+    mapResizeObserver.observe(element('tracking-map-area'));
+    mapResizeObserver.observe(element('tracking-panel'));
     window.addEventListener('pagehide',() => { clearTimeout(timer); controller?.abort(); stopAnimations(); });
     function detailCard(title, symbol, fields) {
         const card = document.createElement('section'); card.className = 'tracking-detail-card';
@@ -441,7 +476,10 @@
         const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 15000);
         try {
             const response = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content},body:JSON.stringify(data),credentials:'same-origin',keepalive,signal:controller.signal});
-            if (response.redirected || !response.ok) throw Object.assign(Error('Video unavailable'),{status:response.redirected ? 401 : response.status});
+            if (response.redirected || !response.ok) {
+                const detail = response.status === 422 ? await response.json().catch(() => ({})) : {};
+                throw Object.assign(Error(detail.message || labels.video_failed),{status:response.redirected ? 401 : response.status});
+            }
             return await response.json();
         } finally { clearTimeout(timeout); }
     }
@@ -458,12 +496,12 @@
                 startButton.disabled = !videoVehicle || channel > videoVehicle.equipment.channels;
                 stopButton.hidden = !preserveFrame;
             },
-            notify(state) { status.textContent = labels['video_'+state]; startButton.disabled = state !== 'failed'; stopButton.hidden = state === 'failed'; startButton.hidden = state !== 'failed'; },
-            attach(url,onError) {
-                playback = attachLivePlayer(player, url, {
+            notify(state, error) { status.textContent = state === 'failed' ? (error?.message || labels.video_failed) : labels['video_'+state]; startButton.disabled = state !== 'failed'; stopButton.hidden = state === 'failed'; startButton.hidden = state !== 'failed'; },
+            attach(url,onError,options) {
+                playback = attachLivePlayer(player, url, {...options,
                     shouldPlay: () => !manualPaused,
                     onState(state) {
-                        if (state === 'paused') manualPaused = true;
+                        if (state === 'paused' && !document.hidden) manualPaused = true;
                         if (state === 'ready') { manualPaused = false; session.markPlaying(); }
                         if (['preview','ready','paused','play_required'].includes(state)) placeholder.hidden = true;
                         if (state !== 'buffering' && state !== 'preview') status.textContent = labels['video_'+state];
@@ -476,15 +514,31 @@
             void session.start(`${config.videoUrl}/${videoVehicle.equipment.id}/live`,channel);
         });
         stopButton.addEventListener('click',() => { void session.stop(); status.textContent = labels.video_idle; });
-        return {session,startButton,status,channel};
+        return {session,startButton,status,channel,resume() { if (session.active) { void session.resume(); playback?.resume(); } }};
     });
     let panelBeforeVideo = false;
-    function resizeMap() { if (map) requestAnimationFrame(() => { google.maps.event.trigger(map,'resize'); fitFleet(); }); }
+    const videoFullscreen=createVideoFullscreen({panel:element('tracking-video-panel'),button:element('tracking-video-fullscreen'),onChange:resizeMap});
+    const stopLayoutObserver=observeMapLayout(workspace);
+    window.addEventListener('pagehide',stopLayoutObserver,{once:true});
+    function resizeMap() {
+        if (!map || !active() || resizeFrame !== null) return;
+        resizeFrame = requestAnimationFrame(() => {
+            resizeFrame = null;
+            if (!active() || !canvas.clientWidth || !canvas.clientHeight) return;
+            const area = canvas.getBoundingClientRect(), panel = element('tracking-panel').getBoundingClientRect();
+            if (area.width !== lastMapWidth && selectedId !== null && !workspace.classList.contains('panel-collapsed') && area.right - panel.right < 280) togglePanel(true,false);
+            lastMapWidth = area.width;
+            google.maps.event.trigger(map,'resize'); measureViewport();
+            if (fitOnOpen) { fitOnOpen = false; fitFleet(); }
+            else recenterSelection();
+        });
+    }
     async function closeVideo(keepalive = false) {
         videoGeneration++;
+        const leavingFullscreen=videoFullscreen.close({restoreFocus:false});
         const wasOpen = !!videoVehicle; videoVehicle = null;
         element('tracking-video-panel').hidden = true; workspace.classList.remove('has-video');
-        const stops = [...videoPlayers.map(({session}) => session.stop(keepalive)),vehicleAudio.select(null,keepalive)];
+        const stops = [leavingFullscreen,...videoPlayers.map(({session}) => session.stop(keepalive)),vehicleAudio.select(null,keepalive)];
         if (wasOpen) { workspace.classList.toggle('panel-collapsed',panelBeforeVideo); resizeMap(); }
         await Promise.allSettled(stops);
     }
@@ -492,7 +546,7 @@
         if (!config.canVideo || !vehicle.equipment) return;
         const stopping = closeVideo(), opening = videoGeneration;
         await stopping;
-        if (opening !== videoGeneration || !active() || selectedId !== vehicle.id) return;
+        if (opening !== videoGeneration || document.body.dataset.view !== 'map' || selectedId !== vehicle.id) return;
         // The opening itself does not start either camera channel.
         videoVehicle = vehicle; panelBeforeVideo = workspace.classList.contains('panel-collapsed');
         void vehicleAudio.select(vehicle.equipment.id);
@@ -500,14 +554,21 @@
         if (document.body.dataset.view !== 'map') location.hash = 'map';
         element('tracking-video-title').textContent = vehicle.name;
         element('tracking-video-subtitle').textContent = [vehicle.equipment.model,vehicle.equipment.imei].filter(Boolean).join(' · ');
-        element('tracking-video-panel').dataset.cameraModel = vehicle.equipment.model || '';
+        element('tracking-video-panel').dataset.videoFit = vehicle.equipment.video_fit || 'contain';
+        element('tracking-video-panel').dataset.channelCount = String(Math.min(2,vehicle.equipment.channels));
+        document.querySelectorAll('[data-map-channel]').forEach(section=>{section.dataset.available=String(Number(section.dataset.mapChannel)<=vehicle.equipment.channels);});
         element('tracking-video-panel').hidden = false;
         videoPlayers.forEach(({startButton,status,channel}) => { startButton.disabled = channel > vehicle.equipment.channels; status.textContent = labels[channel > vehicle.equipment.channels ? 'video_missing' : 'video_idle']; });
         infoWindow?.close(); popupVehicleId = null; resizeMap();
-        element('tracking-video-close').focus();
+        element('tracking-video-close').focus({preventScroll:true});
     }
     element('tracking-video-close').addEventListener('click',() => { void closeVideo(); });
     window.addEventListener('pagehide',() => { void closeVideo(true); });
 
-    syncView();
+    observeMapView({document,
+        closeVideo:() => { void closeVideo(); },
+        sync:syncView,
+        enter:() => { fitOnOpen = document.body.dataset.view === 'map'; },
+        resume:() => { videoPlayers.forEach(player => player.resume()); },
+    });
 })();

@@ -40,9 +40,10 @@ it('rejects invalid credentials, remote clients and unknown terminal identifiers
 });
 
 it('resolves registered devices but denies disabled devices and their telemetry', function () {
-    $dashcam = Dashcam::create(['name' => 'Test', 'imei' => '123456789012345']);
+    $dashcam = Dashcam::create(['name' => 'Test', 'model' => 'ES500-603', 'imei' => '123456789012345']);
     $this->withToken(config('listener.token'))->postJson('/api/internal/listener/resolve', ['kind' => '2013', 'terminal' => $dashcam->terminal_id_2013])
-        ->assertOk()->assertJsonPath('imei', $dashcam->imei);
+        ->assertOk()->assertJsonPath('imei', $dashcam->imei)->assertJsonPath('model', 'ES500-603');
+    expect($dashcam->fresh()->last_seen_at)->toBeNull();
     $dashcam->update(['enabled' => false]);
     $this->postJson('/api/internal/listener/resolve', ['kind' => '2013', 'terminal' => $dashcam->terminal_id_2013])->assertNotFound();
     $this->postJson('/api/internal/listener/event', ['device_id' => $dashcam->id, 'protocol' => '2013', 'ip' => '127.0.0.1'])->assertNotFound();

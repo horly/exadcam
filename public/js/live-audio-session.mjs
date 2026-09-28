@@ -28,24 +28,29 @@ export class LiveAudioSession {
             run.socket.binaryType='arraybuffer';
             run.socket.onmessage=event=>{
                 if(this.run!==run)return;
-                if(event.data instanceof ArrayBuffer){run.graph.play(event.data);return;}
+                if(event.data instanceof ArrayBuffer){if(mode==='listen')run.graph.play(event.data);return;}
                 try{
                     const message=JSON.parse(event.data);
-                    if(message.state==='ready'){
-                        this.cancel(run.timeout);run.ready=true;
+                    if(message.state==='ready'&&!run.ready){
+                        run.ready=true;
+                        if(mode==='listen')this.cancel(run.timeout);
                         if(mode==='talk')run.graph.capture(run.microphone,data=>{
                             if(this.run!==run||run.socket.readyState!==1)return;
                             if(run.socket.bufferedAmount>16000){this.fail(run,Error('Audio congested'));return;}
                             run.socket.send(data);
                         });
-                        this.notify(mode==='talk'?'talking':'listening');
+                        this.notify(mode==='talk'?'microphone':'listening');
+                    }
+                    // The incoming camera audio alone does not confirm a microphone return.
+                    if(message.state==='transmitting'&&mode==='talk'&&run.ready&&!run.transmitting){
+                        this.cancel(run.timeout);run.transmitting=true;this.notify('talking');
                     }
                     if(message.state==='closed')this.fail(run,Error('Audio disconnected'));
                 }catch(error){this.fail(run,error);}
             };
             run.socket.onerror=()=>this.fail(run,Error('Audio unavailable'));
             run.socket.onclose=()=>this.fail(run,Error('Audio disconnected'));
-            run.timeout=this.schedule(()=>this.fail(run,Error('Audio timeout')),20000);
+            run.timeout=this.schedule(()=>this.fail(run,Error('Audio timeout')),45000);
             const heartbeat=async()=>{
                 if(this.run!==run)return;
                 try{await this.request(`${url}/${run.lease}/keepalive`,{});if(this.run===run)run.heartbeat=this.schedule(heartbeat,6000);}

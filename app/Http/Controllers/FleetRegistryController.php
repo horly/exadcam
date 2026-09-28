@@ -73,7 +73,7 @@ class FleetRegistryController extends Controller
 
     public function store(Request $request, string $kind): JsonResponse
     {
-        abort_unless(FleetAccess::registry($request->user(), $kind, true), 403);
+        abort_unless(FleetAccess::createRegistry($request->user(), $kind), 403);
         $record = DB::transaction(function () use ($request, $kind) {
             $data = $this->validated($request, $kind);
             if ($kind === 'vehicles') {

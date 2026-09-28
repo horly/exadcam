@@ -11,7 +11,7 @@
         <div class="users-toolbar"><div><h2>{{ __('dashcams.registry') }}</h2><p>{{ __('dashcams.registry_hint') }}</p></div>@if(auth()->user()->isSuperadmin())<button type="button" id="dashcam-create" class="btn btn-primary users-primary"><x-icon name="plus" />{{ __('dashcams.new') }}</button>@endif</div>
         <div class="users-filters dashcam-filters">
             <label class="users-search" for="dashcam-search"><x-icon name="search" /><input type="search" id="dashcam-search" maxlength="100" placeholder="{{ __(auth()->user()->isSuperadmin() ? 'dashcams.search' : 'dashcams.client_search') }}" aria-label="{{ __(auth()->user()->isSuperadmin() ? 'dashcams.search' : 'dashcams.client_search') }}"></label>
-            <select id="dashcam-model-filter" class="form-select" aria-label="{{ __('dashcams.model') }}"><option value="">{{ __('dashcams.all_models') }}</option>@foreach(\App\Support\DashcamProfile::MODELS as $model)<option>{{ $model }}</option>@endforeach</select>
+            @if(auth()->user()->isSuperadmin())<select id="dashcam-model-filter" class="form-select" aria-label="{{ __('dashcams.model') }}"><option value="">{{ __('dashcams.all_models') }}</option>@foreach(\App\Support\DashcamProfile::MODELS as $model)<option>{{ $model }}</option>@endforeach</select>@endif
             <div class="users-page-size"><label for="dashcam-page-size">{{ __('dashcams.show') }}</label><select id="dashcam-page-size" class="form-select form-select-sm">@foreach([5,10,25,50] as $size)<option @selected($size === 10)>{{ $size }}</option>@endforeach</select></div>
             <button type="button" id="dashcam-refresh" class="users-icon-button" aria-label="{{ __('dashcams.refresh') }}" title="{{ __('dashcams.refresh') }}"><x-icon name="refresh" /></button>
         </div>
@@ -61,11 +61,11 @@
 </div></div></div>
 @endif
 @if(\App\Support\FleetAccess::browse(auth()->user()))
-@push('styles')<link rel="stylesheet" href="{{ asset('css/searchable-select.css') }}?v=dashboard-real-1"><link rel="stylesheet" href="{{ asset('css/dashcams.css') }}?v=live-reconnect-1">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/searchable-select.css') }}?v=dashboard-real-1"><link rel="stylesheet" href="{{ asset('css/dashcams.css') }}?v=models-20260928">@endpush
 @push('scripts')
     <script id="dashcam-config" type="application/json">{!! \Illuminate\Support\Js::encode(['isPlatform' => auth()->user()->isSuperadmin(), 'fleetId' => auth()->user()->fleet_id, 'url' => route('dashcams.index'), 'optionsUrl' => route('dashcams.options'), 'registryUrl' => url('/registry'), 'strings' => trans('dashcams')]) !!}</script>
     <script src="{{ asset('js/searchable-select.js') }}?v=dashboard-real-1" defer></script>
     <script src="{{ asset('vendor/hls/hls.min.js') }}" defer></script>
-    <script src="{{ asset('js/dashcams.js') }}?v=audio-3" defer></script>
+    <script src="{{ asset('js/dashcams.js') }}?v=models-20260928" defer></script>
 @endpush
 @endif

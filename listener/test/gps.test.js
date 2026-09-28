@@ -58,12 +58,12 @@ test('real TCP listener rejects unknown/unauthenticated devices and authenticate
         assert.equal(telemetry.body[4], 0);
         assert.equal(events.at(-1).position.recorded_at, '2025-09-01T11:00:00.000Z');
         const heartbeat = await request(socket, encode808({ id: 2, version, terminal })); assert.equal(heartbeat.body[4], 0);
-        const commandParser = new Frames808(), commands = [];
+        const commandParser = new Frames808(), commands = []; let rejectCommand = false;
         const respond = chunk => {
             for (const command of commandParser.push(chunk)) {
                 if (![0x9003,0x9101,0x9102].includes(command.id)) continue;
                 commands.push(command);
-                const body = Buffer.alloc(5); body.writeUInt16BE(command.serial); body.writeUInt16BE(command.id,2);
+                const body = Buffer.alloc(5); body.writeUInt16BE(command.serial); body.writeUInt16BE(command.id,2); if(rejectCommand)body[4]=1;
                 socket.write(encode808({id:0x0001,version,terminal,body}));
                 if (command.id === 0x9003) socket.write(encode808({id:0x1003,version,terminal,body:Buffer.from('06010001014001620102','hex')}));
             }
@@ -88,6 +88,10 @@ test('real TCP listener rejects unknown/unauthenticated devices and authenticate
         assert.deepEqual(commands.at(-1).body,Buffer.from([1,0,2,1]));
         await api('/live/start',{channel:1});assert.equal(commands.at(-1).body.at(-2),0);
         await api('/live/start',{channel:2});assert.equal(commands.at(-1).body.at(-2),1);
+        rejectCommand=true;
+        const refusal=await fetch(`http://127.0.0.1:${service.api.address().port}/live/start`,{method:'POST',headers:{Authorization:`Bearer ${secret}`,'Content-Type':'application/json'},body:JSON.stringify({device_id:1,channel:1})});
+        assert.equal(refusal.status,422);
+        assert.deepEqual(await refusal.json(),{error:'Request failed',code:'device_rejected',result:1});
         socket.off('data',respond);
         if (version === '2019') {
             enabled = false;

@@ -39,7 +39,7 @@ class DashboardService
         $cutoff = now()->subMinutes(3);
         $isOnline = fn ($camera) => $camera?->last_seen_at && $camera->last_seen_at->gte($cutoff);
         $map = $canMap ? collect(app(FleetMapService::class)->snapshot($user)['vehicles'])->keyBy('id') : collect();
-        $rows = $vehicles->map(function ($vehicle) use ($byVehicle, $isOnline, $map, $canMap, $canVideo) {
+        $rows = $vehicles->map(function ($vehicle) use ($byVehicle, $isOnline, $map, $canMap, $canVideo, $user) {
             $camera = $byVehicle->get($vehicle->id)?->first();
             $online = (bool) $isOnline($camera);
             $state = ! $camera ? 'no_camera' : (! $camera->last_seen_at ? 'pending' : ($online ? 'online' : 'offline'));
@@ -51,14 +51,15 @@ class DashboardService
                 'motion' => $canMap && $camera ? __('map.'.($gps['state'] ?? 'no_position')) : null,
                 'speed' => $canMap && $online && in_array($gps['state'] ?? '', ['moving', 'stopped', 'parking'], true) ? $gps['position']['speed'] : null,
                 'last_seen_at' => $camera?->last_seen_at?->toIso8601String(),
-                'device_id' => $canVideo ? $camera?->id : null, 'model' => $camera?->model,
+                'device_id' => $canVideo ? $camera?->id : null, ...($user->isSuperadmin() ? ['model' => $camera?->model] : []),
             ];
         })->values();
-        $video = $canVideo ? $byVehicle->map(fn ($group) => $group->first())->map(function ($camera) use ($rows) {
+        $video = $canVideo ? $byVehicle->map(fn ($group) => $group->first())->map(function ($camera) use ($rows, $user) {
             $row = $rows->firstWhere('id', $camera->vehicle_id);
             return ['id' => $camera->vehicle_id,
                 'label' => collect([$camera->vehicle->name, $camera->vehicle->registration_number, $camera->vehicle->fleet->name])->filter()->implode(' · '),
-                'device_id' => $camera->id, 'model' => $camera->model, 'channels' => $camera->channels,
+                'device_id' => $camera->id, 'channels' => $camera->channels, 'video_fit' => $camera->videoFit(),
+                ...($user->isSuperadmin() ? ['model' => $camera->model] : []),
                 'status' => $row['status'].($row['online'] && $row['motion'] ? ' · '.$row['motion'] : ''),
                 'connection' => $row['connection'], 'last_seen_at' => $row['last_seen_at'],
             ];
@@ -151,11 +152,11 @@ class DashboardService
         $last = max(1, (int) ceil($total / $perPage));
         $page = min(max(1, $page), $last);
         $rows = $query->orderByDesc('occurred_at')->orderBy('kind')->orderByDesc('id')->forPage($page, $perPage)->get();
-        $data = $rows->map(function ($row) {
+        $data = $rows->map(function ($row) use ($user) {
             $connection = $row->kind === 'connection';
             return ['id' => $row->kind.'-'.$row->id, 'vehicle_id' => (int) $row->vehicle_id,
                 'vehicle' => $row->name, 'registration' => $row->registration_number, 'fleet' => $row->fleet,
-                'model' => $row->model, 'at' => Carbon::parse($row->occurred_at, 'UTC')->toIso8601String(),
+                ...($user->isSuperadmin() ? ['model' => $row->model] : []), 'at' => Carbon::parse($row->occurred_at, 'UTC')->toIso8601String(),
                 'kind' => $row->kind, 'title' => $connection ? __('Perte de contact') : $this->alarmLabel((int) $row->mask),
                 'description' => $connection ? __('Aucun contact reçu depuis plus de 3 minutes. La date indiquée est celle du dernier contact.') : __('Signalement transmis par la dashcam à la date indiquée.'),
             ];

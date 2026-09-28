@@ -7,7 +7,7 @@ import {WebSocket} from 'ws';
 import {setTimeout as delay} from 'node:timers/promises';
 import {startAudio} from '../src/audio.js';
 import {Frames1078} from '../src/protocol.js';
-import {encodeAudioPacket,AudioFrames,AdtsFrames,adtsFormat} from '../src/audio-codec.js';
+import {encodeAudioPacket,AudioFrames,AdtsFrames,adtsFormat,g711FrameSize} from '../src/audio-codec.js';
 
 test('audio framing round-trips short and extended identities without leaking video frames',()=>{
     for(const terminal of ['053810725721','00000867934087966430']){
@@ -33,16 +33,16 @@ test('AAC parser extracts complete ADTS frames across transport boundaries',()=>
     assert.throws(()=>new AdtsFrames().push(Buffer.alloc(7)),/Invalid/);
 });
 
-test('real TCP/WebSocket audio isolates grants, denies concurrent speakers, and closes on revocation',async t=>{
-    const secret='audio-test-internal-secret-'.repeat(3),terminal='00000867934087966430';
-    const grant='a'.repeat(64);let allowed=true,service,deviceSocket,deviceTimer,stopCount=0,transmitted=[];
+for (const [frameSize,firstDelay] of [[80,0],[320,0],[80,17000]]) test('TCP/WebSocket intercom G711 length '+frameSize+', delay '+firstDelay+' and revocation',async t=>{
+    const secret='audio-test-internal-secret-'.repeat(3),terminal=frameSize===80?'053810725721':'00000867934087966430';
+    const grant='a'.repeat(64);let allowed=true,service,deviceSocket,deviceTimer,stopCount=0,transmitted=[],initialTimer;
     const backend=http.createServer(async(req,res)=>{
         assert.equal(req.headers.authorization,`Bearer ${secret}`);let input='';for await(const chunk of req)input+=chunk;const data=JSON.parse(input||'{}');
         res.setHeader('Content-Type','application/json');
         const respond=(code,value)=>{res.writeHead(code);res.end(JSON.stringify(value));};
-        if(req.url==='/resolve')return respond(200,{id:1,video_terminal_id:terminal,channels:2});
+        if(req.url==='/resolve')return respond(200,{id:1,model:frameSize===80?'ES500-603':'JK114',video_terminal_id:terminal,channels:2});
         if(req.url==='/audio-access')return respond(allowed&&data.grant===grant&&data.device_id===1?200:403,{});
-        if(req.url==='/audio/capabilities')return respond(200,{codec:6,channels:1,sample_rate:8000,frame_length:320,output:true});
+        if(req.url==='/audio/capabilities')return respond(200,{codec:6,channels:1,sample_rate:8000,frame_length:frameSize,output:true});
         if(req.url==='/audio/attach'){
             deviceTimer=setInterval(()=>{
                 fetch(`http://127.0.0.1:${service.api.address().port}/ingest`,{method:'POST',headers:{Authorization:`Bearer ${secret}`,'Content-Type':'application/json'},body:JSON.stringify({device_id:1,lease_id:data.lease_id,codec:6,payload:Buffer.alloc(160,0xd5).toString('base64')})}).catch(()=>{});
@@ -53,11 +53,13 @@ test('real TCP/WebSocket audio isolates grants, denies concurrent speakers, and 
         if(req.url==='/audio/talk-start'||req.url==='/audio/keepalive')return respond(200,{});
         if(req.url==='/audio/start'){
             assert.equal(data.mode,'talk','Listening must share the video source without a competing camera command');
+            initialTimer=setTimeout(()=>{
             deviceSocket=net.connect(service.server.address().port,'127.0.0.1');deviceSocket.on('error',()=>{});
-            const parser=new Frames1078(10);deviceSocket.on('data',chunk=>transmitted.push(...parser.push(chunk)));
+            const parser=new Frames1078(terminal.length/2);deviceSocket.on('data',chunk=>transmitted.push(...parser.push(chunk)));
             let sequence=0;
-            deviceSocket.on('connect',()=>{deviceTimer=setInterval(()=>deviceSocket.write(encodeAudioPacket({terminal,channel:1,codec:6,sequence:sequence++,timestamp:sequence*20,payload:Buffer.alloc(160,0xd5)})),20);});
-            deviceSocket.on('close',()=>clearInterval(deviceTimer));return respond(200,{acknowledged:true});
+            deviceSocket.on('connect',()=>{deviceTimer=setInterval(()=>deviceSocket.write(encodeAudioPacket({terminal,channel:1,codec:6,sequence:sequence++,timestamp:sequence*20,payload:Buffer.alloc(frameSize,0xd5)})),20);});
+            deviceSocket.on('close',()=>clearInterval(deviceTimer));
+            },firstDelay);return respond(frameSize===80?503:200,{acknowledged:true});
         }
         if(req.url==='/audio/stop'){stopCount++;deviceSocket?.destroy();return respond(200,{acknowledged:true});}
         respond(404,{});
@@ -65,9 +67,9 @@ test('real TCP/WebSocket audio isolates grants, denies concurrent speakers, and 
     backend.listen(0,'127.0.0.1');await once(backend,'listening');
     const base=`http://127.0.0.1:${backend.address().port}`;
     Object.assign(process.env,{LISTENER_API_TOKEN:secret,LARAVEL_LISTENER_URL:base,GPS_API_URL:base,VIDEO_API_URL:base,AUDIO_PORT:'0',AUDIO_API_PORT:'0',LISTENER_BIND:'127.0.0.1',AUDIO_ALLOWED_ORIGINS:'https://example.test'});
-    service=startAudio({transcoder:({encode,onData})=>({write:()=>onData(Buffer.alloc(encode?160:640,encode?0xd5:0)),close(){}})});
+    service=startAudio({transcoder:({encode,gain,onData})=>{if(encode)assert.equal(gain,frameSize===80?4:2);return {write:data=>onData(encode?Buffer.from(data.subarray(0,640)):Buffer.alloc(640)),close(){}};}});
     await once(service.server,'listening');const clients=[];
-    t.after(()=>{clearInterval(deviceTimer);for(const ws of clients)ws.terminate();deviceSocket?.destroy();service.close();backend.closeAllConnections();backend.close();});
+    t.after(()=>{clearTimeout(initialTimer);clearInterval(deviceTimer);for(const ws of clients)ws.terminate();deviceSocket?.destroy();service.close();backend.closeAllConnections();backend.close();});
     const api=async(route,data={})=>fetch(`http://127.0.0.1:${service.api.address().port}${route}`,{method:'POST',headers:{Authorization:`Bearer ${secret}`,'Content-Type':'application/json'},body:JSON.stringify(data)});
     const open=async(mode='listen')=>{const res=await api('/sessions',{device_id:1,grant,mode});assert.equal(res.status,201);return res.json();};
     const connect=(lease,token=lease.token,origin='https://example.test')=>{
@@ -85,11 +87,24 @@ test('real TCP/WebSocket audio isolates grants, denies concurrent speakers, and 
     const reused=connect(first);await once(reused,'error');
     ws.send(Buffer.alloc(1280));await once(ws,'close'); // listening can never transmit.
     await delay(30);assert.equal(transmitted.length,0);
-    const second=await open('talk'),talk=connect(second);let talkReady=false;
-    talk.on('message',(data,binary)=>{if(!binary&&JSON.parse(data).state==='ready')talkReady=true;});await once(talk,'open');
-    const talkDeadline=Date.now()+3000;while(!talkReady&&Date.now()<talkDeadline)await delay(20);
-    assert.ok(talkReady);talk.send(Buffer.alloc(1280));await delay(60);
+    const second=await open('talk'),talk=connect(second);let talkReady=false,talkBytes=0,sending=false;
+    talk.on('message',(data,binary)=>{if(binary)talkBytes+=data.length;else{const state=JSON.parse(data).state;if(state==='ready')talkReady=true;if(state==='transmitting')sending=true;}});await once(talk,'open');
+    const talkDeadline=Date.now()+3000+firstDelay;while(!talkReady&&Date.now()<talkDeadline)await delay(20);
+    assert.ok(talkReady);assert.equal(sending,false);talk.send(Buffer.alloc(1280,0x34));await delay(100);
+    assert.equal(sending,true);assert.equal(talkBytes,0,'Talk does not return camera audio to the browser');
     assert.ok(transmitted.length>0);assert.equal(transmitted[0].payloadType,6);assert.equal(transmitted[0].terminal,terminal);
+    assert.equal(transmitted.length,640/frameSize);
+    for(let i=0;i<transmitted.length;i++){
+        assert.equal(transmitted[i].payload.length,frameSize);
+        assert.deepEqual(transmitted[i].payload,Buffer.alloc(frameSize,0x34),'Camera receives browser microphone data, never its own microphone');
+        assert.equal(transmitted[i].timestamp,BigInt(i*frameSize/8));
+        assert.equal(transmitted[i].sequence,i);
+    }
     allowed=false;await Promise.race([once(talk,'close'),delay(5000).then(()=>{throw Error('Revocation timeout');})]);
     assert.ok(stopCount>=2);
+});
+
+test('invalid G711 capability lengths use a bounded 20 ms fallback',()=>{
+    for(const frame_length of [undefined,0,-1,8192,1.5,'80']) assert.equal(g711FrameSize({frame_length},8000),160);
+    assert.equal(g711FrameSize({frame_length:80},8000),80);
 });

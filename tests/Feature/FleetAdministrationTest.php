@@ -37,8 +37,9 @@ it('limits every registry list options counts and dashboard to the assigned flee
         ->assertSee('dashcam-form-modal')->assertDontSee('id="dashcam-imei"', false)->assertDontSee('id="dashcam-create"', false);
 });
 
-it('creates and edits vehicles and departments with implicit fleet and rejects cross fleet writes', function () {
-    $id = $this->postJson('/registry/vehicles', ['name' => 'New car', 'department_id' => $this->department->id])->assertCreated()->json('id');
+it('edits assigned vehicles and manages departments but cannot create vehicles', function () {
+    $this->postJson('/registry/vehicles', ['name' => 'New car', 'department_id' => $this->department->id])->assertForbidden();
+    $id = $this->vehicle->id;
     expect(Vehicle::find($id)->fleet_id)->toBe($this->fleet->id);
     $this->patchJson('/registry/vehicles/'.$id, ['name' => 'Renamed', 'department_id' => null])->assertOk();
     expect(Vehicle::find($id)->department_id)->toBeNull();
@@ -46,7 +47,7 @@ it('creates and edits vehicles and departments with implicit fleet and rejects c
     $this->patchJson('/registry/departments/'.$this->department->id, ['name' => 'Updated site'])->assertOk();
     foreach (['vehicles' => $this->foreignVehicle, 'departments' => $this->foreignDepartment] as $kind => $record) {
         $this->patchJson('/registry/'.$kind.'/'.$record->id, ['name' => 'Forbidden'])->assertNotFound();
-        $this->postJson('/registry/'.$kind, ['name' => 'Forbidden', 'fleet_id' => $this->foreign->id])->assertUnprocessable();
+        $this->postJson('/registry/'.$kind, ['name' => 'Forbidden', 'fleet_id' => $this->foreign->id])->assertStatus($kind === 'vehicles' ? 403 : 422);
     }
     $this->patchJson('/registry/vehicles/'.$id, ['name' => 'Bad transfer', 'fleet_id' => $this->foreign->id])->assertUnprocessable();
     $this->patchJson('/registry/vehicles/'.$id, ['name' => 'Bad site', 'department_id' => $this->foreignDepartment->id])->assertUnprocessable();
@@ -104,7 +105,7 @@ it('lets an admin create normal users with selected management permissions only 
     expect($operator->fleet_id)->toBe($this->fleet->id)->and($operator->isSimpleUser())->toBeTrue()->and($operator->permissions)->toEqual($payload['permissions']);
     $this->postJson('/users', [...$payload, 'email' => 'forged@example.test', 'role' => 'admin'])->assertUnprocessable();
     $this->postJson('/users', [...$payload, 'email' => 'forged@example.test', 'fleet_id' => $this->foreign->id])->assertUnprocessable();
-    $this->actingAs($operator)->postJson('/registry/vehicles', ['name' => 'Operator vehicle'])->assertCreated();
+    $this->actingAs($operator)->postJson('/registry/vehicles', ['name' => 'Operator vehicle'])->assertForbidden();
     $this->getJson('/map/vehicles')->assertForbidden();
 });
 
@@ -166,3 +167,31 @@ it('denies management when an assigned fleet is missing or inactive', function (
     $this->patchJson('/dashcams/'.$this->camera->id, ['name' => 'Bad'])->assertForbidden();
     $this->postJson('/dashcams/'.$this->camera->id.'/live', ['channel' => 1])->assertForbidden();
 })->with(['missing', 'inactive']);
+
+it('hides hardware identity in every client payload while preserving ACC and video framing', function ($role) {
+    $this->camera->update(['name' => 'Secret JK114 label']);
+    $this->camera->forceFill(['vehicle_assigned_at' => now()->subHour(), 'last_seen_at' => now()])->save();
+    $this->vehicle->forceFill(['fleet_assigned_at' => now()->subHour()])->save();
+    if ($role === 'user') {
+        $this->actingAs(User::factory()->create(['role' => 'user', 'fleet_id' => $this->fleet->id,
+            'permissions' => ['vehicles.manage', 'dashcams.manage', 'map.view', 'video.view']]));
+    }
+    \Illuminate\Support\Facades\DB::table('dashcam_positions')->insert(['dashcam_id' => $this->camera->id,
+        'recorded_at' => now()->subSeconds(1), 'latitude' => -4.3, 'longitude' => 15.2, 'status' => 3, 'speed' => 0, 'alarm' => 1]);
+    foreach (['/dashcams', '/map/vehicles', '/dashboard/data', '/dashboard/alerts'] as $url) {
+        $this->getJson($url)->assertOk()->assertDontSee('JK114')->assertDontSee('Secret')->assertDontSee($this->camera->imei);
+    }
+    $this->getJson('/dashcams?search=JK114')->assertOk()->assertJsonPath('dashcams.total', 0);
+    $this->getJson('/dashcams?model=ES500-603')->assertOk()->assertJsonPath('dashcams.total', 1);
+    foreach ([3 => true, 2 => false] as $status => $ignition) {
+        \Illuminate\Support\Facades\DB::table('dashcam_positions')->insert(['dashcam_id' => $this->camera->id,
+            'recorded_at' => now(), 'latitude' => -4.3, 'longitude' => 15.2, 'status' => $status, 'speed' => 0, 'alarm' => 0]);
+        $this->getJson('/map/vehicles')->assertOk()->assertJsonPath('vehicles.0.position.ignition', $ignition)
+            ->assertJsonPath('vehicles.0.equipment.video_fit', 'fill');
+    }
+    $html = $this->get('/')->assertOk()->assertDontSee('id="dashcam-model-filter"', false)->getContent();
+    preg_match('/<section data-registry-module="vehicles".*?<\/section>/s', $html, $section);
+    expect($section[0])->not->toContain('data-registry-create');
+    $this->postJson('/registry/vehicles', ['name' => 'No bypass', 'fleet_id' => $this->fleet->id])->assertForbidden();
+    expect(Vehicle::where('name', 'No bypass')->exists())->toBeFalse();
+})->with(['admin', 'user']);

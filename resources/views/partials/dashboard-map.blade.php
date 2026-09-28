@@ -39,7 +39,7 @@
             <div class="tracking-legend"><span class="tracking-glyph" data-state="moving"></span>{{ __('map.moving') }}<span class="tracking-glyph" data-state="stopped"></span>{{ __('map.stopped') }}<span class="tracking-glyph" data-state="parking">P</span>{{ __('map.parking') }}</div>
         </div>
         <aside class="tracking-video-panel" id="tracking-video-panel" aria-label="{{ __('map.video') }}" hidden>
-            <header><div><span>{{ __('map.live_video') }}</span><h2 id="tracking-video-title"></h2><p id="tracking-video-subtitle"></p></div><button type="button" id="tracking-video-close" class="users-icon-button" aria-label="{{ __('map.close_video') }}"><x-icon name="close" /></button></header>
+            <header><div><span>{{ __('map.live_video') }}</span><h2 id="tracking-video-title"></h2><p id="tracking-video-subtitle"></p></div><div class="tracking-video-actions"><button type="button" id="tracking-video-fullscreen" class="users-icon-button tracking-video-expand" aria-label="{{ __('map.video_fullscreen') }}" title="{{ __('map.video_fullscreen') }}" aria-pressed="false" aria-controls="tracking-video-panel" data-enter-label="{{ __('map.video_fullscreen') }}" data-exit-label="{{ __('map.video_fullscreen_exit') }}" data-enter-short="{{ __('map.video_fullscreen_short') }}" data-exit-short="{{ __('map.video_fullscreen_exit_short') }}"><x-icon name="expand" data-video-expand-icon /><x-icon name="minimize" data-video-reduce-icon hidden /><span data-fullscreen-label>{{ __('map.video_fullscreen_short') }}</span></button><button type="button" id="tracking-video-close" class="users-icon-button" aria-label="{{ __('map.close_video') }}"><x-icon name="close" /></button></div></header>
             @include('partials.audio-controls', ['audioId' => 'tracking-video-audio'])
             <div class="tracking-video-channels">
                 @foreach([1,2] as $channel)
@@ -89,8 +89,8 @@
     </div></div>
 </div>
 @endif
-@push('styles')<link rel="stylesheet" href="{{ asset('css/google-map.css') }}?v=map-follow-1">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/google-map.css') }}?v=map-layout-20260925">@endpush
 @push('scripts')
 <script id="google-map-data" type="application/json">{!! \Illuminate\Support\Js::encode($googleMap) !!}</script>
-<script src="{{ asset('js/google-map.js') }}?v=audio-3" defer></script>
+<script src="{{ asset('js/google-map.js') }}?v=map-layout-20260925" defer></script>
 @endpush

@@ -20,21 +20,27 @@ class FakeHls {
     attachMedia() {}
     destroy() {this.destroyed=true;}
 }
-function setup({native=false,shouldPlay=()=>true}={}) {
+function setup({native=false,shouldPlay=()=>true,startBufferSeconds=4}={}) {
     const player=new Video(), states=[],errors=[];let tick,clock=0,cancelled=false;
-    const playback=attachLivePlayer(player,'/test.m3u8',{Hls:native?null:FakeHls,shouldPlay,onState:s=>states.push(s),onError:e=>errors.push(e),schedule:fn=>(tick=fn,1),cancel:()=>{cancelled=true;},now:()=>clock});
+    const playback=attachLivePlayer(player,'/test.m3u8',{Hls:native?null:FakeHls,shouldPlay,startBufferSeconds,onState:s=>states.push(s),onError:e=>errors.push(e),schedule:fn=>(tick=fn,1),cancel:()=>{cancelled=true;},now:()=>clock});
     return {player,states,errors,playback,tick:()=>tick(),advance:ms=>{clock+=ms;tick();},cancelled:()=>cancelled};
 }
-test('startup waits for fifteen seconds of contiguous playable video',()=>{
-    const s=setup();s.player.ranges=[[0,4]];s.tick();assert.equal(s.player.plays,0);
-    s.player.ranges=[[0,8],[10,30]];s.tick();assert.equal(s.player.plays,0);assert.equal(bufferedAhead(s.player),8);
-    s.player.ranges=[[0,16]];s.tick();assert.equal(s.player.plays,1);assert.deepEqual(s.states,['buffering','preview','ready']);s.playback.destroy();
+test('startup plays after four seconds without counting ranges across a gap',()=>{
+    const s=setup();s.player.ranges=[[0,2]];s.tick();assert.equal(s.player.plays,0);
+    s.player.ranges=[[0,3],[5,30]];s.tick();assert.equal(s.player.plays,0);assert.equal(bufferedAhead(s.player),3);
+    s.player.ranges=[[0,4]];s.tick();assert.equal(s.player.plays,1);assert.deepEqual(s.states,['buffering','preview','ready']);s.playback.destroy();
 });
 test('the first real frame is revealed while the reserve fills, without starting playback',()=>{
     const s=setup();assert.equal(FakeHls.last.config.initialLiveManifestSize,1);
     s.player.ranges=[[0,2]];s.player.dispatchEvent(new Event('loadeddata'));
     assert.equal(s.player.plays,0);assert.equal(s.player.controls,false);assert.deepEqual(s.states,['buffering','preview']);
     s.tick();assert.equal(s.states.filter(x=>x==='preview').length,1);s.playback.destroy();
+});
+test('legacy and invalid startup profiles keep the eight-second reserve',()=>{
+    for(const startBufferSeconds of [8,0,2,NaN]){
+        const s=setup({startBufferSeconds});s.player.ranges=[[0,4]];s.tick();assert.equal(s.player.plays,0);
+        s.player.ranges=[[0,8]];s.tick();assert.equal(s.player.plays,1);s.playback.destroy();
+    }
 });
 test('an initial media timeline that starts after zero can build its reserve and play',()=>{
     const s=setup();s.player.currentTime=0;s.player.ranges=[[1.4,18]];s.tick();
@@ -65,8 +71,16 @@ test('native HLS starts behind the edge and waits for a playable reserve',()=>{
     assert.equal(s.player.currentTime,122);assert.equal(s.player.plays,0);
     s.player.ranges=[[122,140]];s.tick();assert.equal(s.player.plays,1);s.playback.destroy();
 });
+test('a newly created native HLS stream starts at four seconds and keeps the larger refill reserve',()=>{
+    const s=setup({native:true});s.player.seekingRanges=[[100,104]];s.player.ranges=[[100,104]];s.tick();
+    assert.equal(s.player.currentTime,100);assert.equal(s.player.plays,1);
+    s.player.currentTime=103.8;s.player.dispatchEvent(new Event('waiting'));
+    s.player.seekingRanges=[[100,110]];s.player.ranges=[[100,110]];s.tick();
+    assert.equal(s.player.currentTime,103.8);assert.equal(s.player.plays,1);
+    s.player.ranges=[[100,120]];s.tick();assert.equal(s.player.plays,2);s.playback.destroy();
+});
 test('a source that never fills the buffer fails after a bounded wait',()=>{
-    const s=setup();s.player.ranges=[[0,4]];s.advance(91000);assert.equal(s.errors.length,1);assert.equal(s.cancelled(),true);
+    const s=setup();s.player.ranges=[[0,2]];s.advance(91000);assert.equal(s.errors.length,1);assert.equal(s.cancelled(),true);
 });
 test('blocked autoplay shows a manual play action without destroying the stream',async()=>{
     const s=setup();s.player.play=()=>Promise.reject(Object.assign(new Error('gesture'),{name:'NotAllowedError'}));s.player.ranges=[[0,18]];s.tick();
@@ -85,4 +99,17 @@ test('the recovery callback can capture the frame before HLS detaches it',()=>{
     const player=new Video();let captured=false;
     const playback=attachLivePlayer(player,'/live',{Hls:FakeHls,schedule:()=>1,cancel:()=>{},onError:()=>{captured=!FakeHls.last.destroyed;}});
     FakeHls.last.events.error(null,{fatal:true});assert.equal(captured,true);assert.equal(FakeHls.last.destroyed,true);playback.destroy();
+});
+
+test('returning to the tab resumes browser-paused playback without a new HLS instance',()=>{
+    const s=setup();s.player.ranges=[[0,20]];s.tick();const hls=FakeHls.last;
+    s.player.pause();s.playback.resume();assert.equal(s.player.plays,2);assert.equal(FakeHls.last,hls);
+    s.playback.resume();assert.equal(s.player.plays,2);s.playback.destroy();
+    s.player.pause();s.playback.resume();assert.equal(s.player.plays,2);
+});
+test('tab resume respects an explicit pause and the initial buffer',()=>{
+    let allowed=true;const s=setup({shouldPlay:()=>allowed});s.player.ranges=[[0,2]];
+    s.playback.resume();assert.equal(s.player.plays,0);
+    s.player.ranges=[[0,20]];s.playback.resume();assert.equal(s.player.plays,1);
+    allowed=false;s.player.pause();s.playback.resume();assert.equal(s.player.plays,1);s.playback.destroy();
 });

@@ -8,12 +8,13 @@
         <button type="button" class="btn live-audio-stop" data-audio-stop hidden>{{ __('audio.stop') }}</button>
         <input type="range" min="0" max="1" step="0.05" value="1" data-audio-volume aria-label="{{ __('audio.volume') }}" hidden>
     </div>
+    <label class="live-audio-level" data-audio-level hidden>{{ __('audio.microphone_level') }} <meter min="0" max="1" value="0" aria-label="{{ __('audio.microphone_level') }}"></meter></label>
     <p role="status" aria-live="polite" data-audio-status>{{ __('audio.idle') }}</p>
     <small class="live-audio-timing">{{ __('audio.realtime') }}</small>
     <small class="live-audio-intercom-note">{{ __('audio.video_pause') }}</small>
 </div>
 @once
-@push('styles')<link rel="stylesheet" href="{{ asset('css/live-audio.css') }}?v=audio-3">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/live-audio.css') }}?v=talk-direction-20260924">@endpush
 @push('scripts')<script id="live-audio-config" type="application/json">{!! \Illuminate\Support\Js::encode(['baseUrl' => url('/dashcams'), 'labels' => trans('audio')]) !!}</script>@endpush
 @endonce
 @endif

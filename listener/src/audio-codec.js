@@ -11,6 +11,14 @@ export function encodeAudioPacket({terminal,channel,codec,sequence,timestamp,pay
     payload.copy(packet,26+offset); return packet;
 }
 
+// G.711 is one encoded byte per sample. Use the terminal's advertised frame
+// length (ES500: 80 bytes / 10 ms), not a universal 20 ms packet.
+export function g711FrameSize(capabilities, rate) {
+    const size = capabilities.frame_length;
+    return Number.isInteger(size) && size >= rate * 0.005 && size <= rate * 0.12
+        ? size : Math.round(rate * 0.02);
+}
+
 export class AudioFrames {
     current = null;
     push(packet) {
@@ -55,12 +63,14 @@ export function adtsFormat(frame) {
 }
 
 // Separate from HLS: conversations must not inherit its fifteen-second reserve.
-export function audioTranscoder({codec,rate=8000,encode=false,onData,onError}) {
+export function audioTranscoder({codec,rate=8000,encode=false,gain=1,onData,onError}) {
     if(!SUPPORTED_AUDIO.includes(codec)||![8000,11025,12000,16000,22050,24000,32000,44100,48000].includes(rate))throw Error('Unsupported audio format');
+    if(![1,2,4].includes(gain))throw Error('Invalid audio gain');
+    const boost=encode&&gain>1?['-af',`volume=${gain},alimiter=limit=0.95:level=false:latency=true`]:[];
     const format={6:'alaw',7:'mulaw',19:'aac'}[codec];
     const input=encode?['-f','s16le','-ar','16000','-ac','1']:['-f',format,...(codec===19?[]:['-ar',String(rate),'-ac','1'])];
     const output=encode?['-ac','1','-ar',String(rate),'-c:a',codec===19?'aac':codec===6?'pcm_alaw':'pcm_mulaw',...(codec===19?['-b:a','24k','-profile:a','aac_low']:[]),'-f',codec===19?'adts':format]:['-ac','1','-ar','16000','-f','s16le'];
-    const child=spawn(process.env.FFMPEG_PATH||'/usr/bin/ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-probesize','1024','-analyzeduration','0',...input,'-i','pipe:0',...output,'-flush_packets','1','pipe:1'],{stdio:['pipe','pipe','pipe']});
+    const child=spawn(process.env.FFMPEG_PATH||'/usr/bin/ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-probesize','1024','-analyzeduration','0',...input,'-i','pipe:0',...boost,...output,'-flush_packets','1','pipe:1'],{stdio:['pipe','pipe','pipe']});
     let closed=false, diagnostic='';
     const fail=()=>{if(!closed)onError(new Error('Audio transcoder failed'));};
     child.stdout.on('data',data=>{if(!closed)onData(data);});
