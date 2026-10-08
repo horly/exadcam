@@ -65,14 +65,19 @@ class DashboardService
             ];
         })->sortBy('label')->values() : collect();
         $online = $cameras->filter($isOnline)->count();
+        // Match the map's chosen GPS source and count each equipped vehicle once.
+        $onlineVehicles = $byVehicle->filter(function ($group, $id) use ($map, $isOnline) {
+            return $map->has($id) ? $map->get($id)['online'] : (bool) $isOnline($group->first());
+        })->count();
         $alerts = $canMap ? $this->alerts($user, 1, 5) : ['data' => [], 'total' => 0, 'page' => 1, 'last_page' => 1];
         return [
             'generated_at' => now()->toIso8601String(), 'can_map' => $canMap, 'can_video' => $canVideo,
             'metrics' => ['vehicles' => $byVehicle->count(), 'fleets' => $vehicles->pluck('fleet_id')->unique()->count(),
                 'online' => $online, 'dashcams' => $cameras->count(), 'offline' => $cameras->count() - $online,
+                'online_vehicles' => $onlineVehicles, 'offline_vehicles' => $byVehicle->count() - $onlineVehicles,
                 'channels' => $cameras->sum('channels'), 'alerts' => $alerts['total']],
             'vehicles' => $rows, 'video' => $video, 'alerts' => $alerts,
-            'charts' => $canMap ? $this->charts($user, $vehicles->count(), $online, $cameras->count()) : null,
+            'charts' => $canMap ? $this->charts($user, $vehicles->count(), $user->isSuperadmin() ? $online : $onlineVehicles, $user->isSuperadmin() ? $cameras->count() : $byVehicle->count()) : null,
         ];
     }
 
@@ -112,7 +117,7 @@ class DashboardService
             $periods[$key] = $period;
         }
         return ['locale' => app()->getLocale(), 'total' => $vehicles, 'camera_total' => $total,
-            'labels' => ['online' => __('Avec relevé GPS'), 'moving' => __('En déplacement'), 'vehicles' => __('véhicules'), 'dashcams' => __('Dashcams')],
+            'labels' => ['online' => __('Avec relevé GPS'), 'moving' => __('En déplacement'), 'vehicles' => __('véhicules'), 'dashcams' => __($user->isSuperadmin() ? 'Dashcams' : 'Véhicules')],
             'periods' => $periods, 'status' => ['labels' => [__('En ligne'), __('Sans contact récent')], 'series' => [$online, $total - $online]]];
     }
 

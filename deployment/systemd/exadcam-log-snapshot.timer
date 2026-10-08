@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh EXADCAM journal snapshots every five seconds
+
+[Timer]
+OnBootSec=5s
+OnUnitInactiveSec=5s
+AccuracySec=1s
+Unit=exadcam-log-snapshot.service
+
+[Install]
+WantedBy=timers.target

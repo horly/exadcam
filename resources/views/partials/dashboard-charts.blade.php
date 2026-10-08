@@ -24,23 +24,23 @@
             </table></div>
         </details>
     </section>
-    <section class="panel availability-panel" aria-labelledby="status-chart-title">
-        <header class="chart-heading"><div><h2 id="status-chart-title">{{ __('État des dashcams') }}</h2><p>{{ __('Équipements activés · contact reçu depuis moins de 3 min') }}</p></div><span class="chart-heading-icon"><x-icon name="dashcam" /></span></header>
+    <section class="panel availability-panel dashboard-widget" aria-labelledby="status-chart-title">
+        <header class="chart-heading"><div><h2 id="status-chart-title"><a class="dashboard-widget-link" href="{{ auth()->user()->isSuperadmin() ? '#dashcams' : (\App\Support\FleetAccess::registry(auth()->user(), 'vehicles') ? '#vehicles' : '#fleet') }}">{{ __('dashboard.'.(auth()->user()->isSuperadmin() ? 'dashcam_status' : 'vehicle_status')) }}</a></h2><p>{{ __('dashboard.'.(auth()->user()->isSuperadmin() ? 'dashcam_contact' : 'vehicle_contact')) }}</p></div><span class="chart-heading-icon"><x-icon name="dashcam" /></span></header>
         <div class="status-chart" id="dashcam-status-chart" aria-hidden="true"></div>
         <dl class="status-chart-legend">
             @foreach ($dashboardCharts['status']['labels'] as $index => $label)
-                <div><dt><i class="chart-dot chart-dot-status-{{ $index }}" aria-hidden="true"></i>{{ $label }}</dt><dd data-dashcam-series="{{ $index }}">{{ $dashboardCharts['status']['series'][$index] }}</dd></div>
+                <div><dt><a class="dashboard-status-link" href="#map?connection={{ $index === 0 ? 'online' : 'offline' }}"><i class="chart-dot chart-dot-status-{{ $index }}" aria-hidden="true"></i>{{ $label }}</a></dt><dd data-dashcam-series="{{ $index }}">{{ $dashboardCharts['status']['series'][$index] }}</dd></div>
             @endforeach
         </dl>
-        <button type="button" class="chart-card-link" data-switch-view="fleet">{{ __('Consulter les véhicules') }}<x-icon name="arrow" /></button>
+        <a class="chart-card-link dashboard-status-link" href="{{ auth()->user()->isSuperadmin() ? '#dashcams' : (\App\Support\FleetAccess::registry(auth()->user(), 'vehicles') ? '#vehicles' : '#fleet') }}">{{ __('dashboard.'.(auth()->user()->isSuperadmin() ? 'view_dashcams' : 'view_vehicles')) }}<x-icon name="arrow" /></a>
     </section>
 </div>
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}?v=dashboard-real-1">
 @endpush
+@pushOnce('scripts', 'apexcharts-library')<script src="{{ asset('vendor/apexcharts/apexcharts.js') }}?v=3.35.1" defer></script>@endPushOnce
 @push('scripts')
     <script type="application/json" id="dashboard-chart-data">{!! \Illuminate\Support\Js::encode($dashboardCharts) !!}</script>
-    <script src="{{ asset('vendor/apexcharts/apexcharts.js') }}?v=3.35.1" defer></script>
     <script src="{{ asset('js/dashboard-charts.js') }}?v=dashboard-real-1" defer></script>
 @endpush

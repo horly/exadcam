@@ -19,7 +19,12 @@
     const sidebar = document.getElementById('app-sidebar');
 
     function showView(requested, moveFocus = false) {
-        const view = Object.hasOwn(views, requested) ? requested : 'overview';
+        let target = requested.split('?')[0];
+        if (target === 'dashcams' && document.body.dataset.dashcamsView !== 'dashcams') {
+            target = document.body.dataset.dashcamsView || 'vehicles';
+            history.replaceState(null, '', '#'+target);
+        }
+        const view = Object.hasOwn(views, target) ? target : 'overview';
         document.body.dataset.view = view;
         const pending = modulePanels.some(panel => panel.dataset.moduleView === view);
         document.body.dataset.modulePending = String(pending);
@@ -27,7 +32,7 @@
         document.querySelector('[data-view-title]').textContent = label;
         document.querySelectorAll('[data-view-label]').forEach(element => { element.textContent = label; });
         document.querySelector('[data-view-description]').textContent = views[view].description;
-        document.title = `${label} · EXADCAM`;
+        document.title = `${label} · ${document.body.dataset.appName || 'EXADCAM'}`;
         overviewPanels.forEach(panel => {
             panel.hidden = view !== 'overview' && !(view === 'map' && panel.classList.contains('monitoring-grid'));
         });

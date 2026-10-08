@@ -9,17 +9,17 @@
             <aside class="tracking-panel" id="tracking-panel" aria-label="{{ __('map.fleet_view') }}">
                 <div class="tracking-panel-heading"><div><span>{{ __('map.filters') }}</span><h2><x-icon name="pin" />{{ __('map.title') }}</h2></div><div><button type="button" id="tracking-refresh" class="users-icon-button" aria-label="{{ __('map.refresh') }}"><x-icon name="refresh" /></button><button type="button" id="tracking-close-panel" class="users-icon-button" aria-label="{{ __('map.hide_panel') }}" aria-controls="tracking-panel" aria-expanded="true"><x-icon name="chevron" /></button></div></div>
                 <div class="tracking-stats">
-                    @foreach(['total' => 'camera', 'positioned' => 'pin', 'online' => 'signal', 'offline' => 'close'] as $stat => $icon)
-                    <div class="tracking-stat stat-{{ $stat }}"><span class="tracking-stat-icon"><x-icon :name="$icon" /></span><span class="tracking-stat-label">{{ __('map.'.$stat) }}</span><strong data-tracking-count="{{ $stat }}">—</strong></div>
+                    @foreach(['total' => 'truck', 'online' => 'signal', 'offline' => 'close'] as $stat => $icon)
+                    <button type="button" class="tracking-stat stat-{{ $stat }}" data-tracking-status="{{ $stat === 'total' ? '' : $stat }}" aria-pressed="{{ $stat === 'total' ? 'true' : 'false' }}"><span class="tracking-stat-icon"><x-icon :name="$icon" /></span><span class="tracking-stat-label">{{ __('map.'.$stat) }}</span><strong data-tracking-count="{{ $stat }}">—</strong></button>
                     @endforeach
                 </div>
                 <div id="tracking-feed-message" class="tracking-feed-message" role="alert" hidden></div>
                 <label class="tracking-show-all"><input class="form-check-input" type="checkbox" id="tracking-show-all"><x-icon name="truck" /><span>{{ __('map.show_all') }}</span></label>
                 <div class="tracking-filters">
-                    <div class="row g-2">
-                        <div class="col-6"><label for="tracking-state"><x-icon name="signal" />{{ __('map.state') }}</label><select id="tracking-state" class="form-select"><option value="">{{ __('map.all_states') }}</option>@foreach(['moving','stopped','parking','offline','stale','no_position','no_camera'] as $state)<option value="{{ $state }}">{{ __('map.'.$state) }}</option>@endforeach</select></div>
-                        <div class="col-6"><label for="tracking-fleet"><x-icon name="fleets" />{{ __('map.fleet') }}</label><select id="tracking-fleet" class="form-select" data-searchable-database data-search-placeholder="{{ __('dashcams.search_fleet') }}" data-no-results="{{ __('dashcams.no_option_match') }}"><option value="">{{ __('map.all_fleets') }}</option></select></div>
-                    </div>
+                    <input type="hidden" id="tracking-state" value="">
+                    @if(auth()->user()->isSuperadmin())
+                    <div><label for="tracking-fleet"><x-icon name="fleets" />{{ __('map.fleet') }}</label><select id="tracking-fleet" class="form-select" data-searchable-database data-search-placeholder="{{ __('dashcams.search_fleet') }}" data-no-results="{{ __('dashcams.no_option_match') }}"><option value="">{{ __('map.all_fleets') }}</option></select></div>
+                    @endif
                     <div class="tracking-department-filter" id="tracking-department-filter" hidden><label for="tracking-department"><x-icon name="departments" />{{ __('map.department') }}</label><select id="tracking-department" class="form-select" data-searchable-database data-search-placeholder="{{ __('dashcams.search_department') }}" data-no-results="{{ __('dashcams.no_option_match') }}"><option value="">{{ __('map.all_departments') }}</option><option value="none">{{ __('dashcams.no_department') }}</option></select></div>
                     <label class="tracking-search-caption" for="tracking-search"><x-icon name="search" />{{ __('map.search_label') }}</label>
                     <div class="tracking-search"><x-icon name="search" /><input id="tracking-search" type="search" maxlength="100" placeholder="{{ __(auth()->user()->isSuperadmin() ? 'map.search' : 'map.client_search') }}" aria-label="{{ __(auth()->user()->isSuperadmin() ? 'map.search' : 'map.client_search') }}"></div>
@@ -89,8 +89,8 @@
     </div></div>
 </div>
 @endif
-@push('styles')<link rel="stylesheet" href="{{ asset('css/google-map.css') }}?v=map-layout-20260925">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/map-trip-history.css') }}?v=history-design-20261005"><link rel="stylesheet" href="{{ asset('css/google-map.css') }}?v=map-overlay-20261007">@endpush
 @push('scripts')
 <script id="google-map-data" type="application/json">{!! \Illuminate\Support\Js::encode($googleMap) !!}</script>
-<script src="{{ asset('js/google-map.js') }}?v=map-layout-20260925" defer></script>
+<script src="{{ asset('js/google-map.js') }}?v=map-overlay-20261007" defer></script>
 @endpush

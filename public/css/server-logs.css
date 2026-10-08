@@ -1,0 +1,35 @@
+.server-logs-panel { padding: 22px; min-width: 0; }
+.server-logs-toolbar { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.server-logs-sources,.server-logs-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.server-logs-actions { margin-left: auto; }
+.server-log-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; border: 1px solid #dce6f2; border-radius: 8px; background: #fff; color: #36577e; padding: 8px 12px; font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.server-log-button .icon { width: 16px; height: 16px; flex-shrink: 0; }
+.server-log-button:hover { background: #f2f6fb; border-color: #bcd0e6; }
+.server-log-button.active { background: #203d65; border-color: #203d65; color: #fff; }
+.server-log-button:disabled { opacity: .5; }
+.server-log-button:focus-visible,.server-logs-output:focus-visible { outline: 2px solid #89a9cc; outline-offset: 3px; }
+.server-logs-select { display: inline-flex; align-items: center; gap: 9px; margin: 0; color: #7d91ad; font-size: 11px; white-space: nowrap; }
+.server-logs-select .form-select { min-height: 38px; width: auto; min-width: 78px; border-color: #dfe7f1; border-radius: 8px; background-color: #fbfcfe; color: #365475; padding: 8px 32px 8px 10px; font-size: 12px; }
+.server-logs-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; }
+.server-logs-filters .users-search { min-height: 38px; }
+.server-logs-filters .users-search input { padding-block: 8px; }
+.server-logs-follow { display: inline-flex; align-items: center; gap: 7px; margin-left: auto; color: #738aa5; font-size: 11px; }
+.server-logs-follow input { accent-color: #203d65; }
+.server-logs-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 18px 0 12px; min-height: 30px; }
+.server-logs-state { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; color: #6e85a0; background: #f0f4f9; border-radius: 20px; font-size: 10px; font-weight: 600; }
+.server-logs-state::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.server-logs-state.is-live { background: #e9f6f0; color: #258367; }
+.server-logs-state.is-failed,.server-logs-state.is-unavailable { background: #fff0ee; color: #b65d57; }
+.server-logs-state.is-stale { background: #fff5e6; color: #a47a3d; }
+#server-logs-meta { color: #8195ae; font-size: 10px; line-height: 1.6; text-align: right; }
+.server-logs-output { height: min(56vh, 640px); min-height: 300px; max-width: 100%; overflow: auto; margin: 0; padding: 18px; background: #102033; color: #d9e5f3; border: 1px solid #263d56; border-radius: 10px; font: 11px/1.8 ui-monospace, SFMono-Regular, Consolas, monospace; tab-size: 4; white-space: pre; overscroll-behavior: contain; }
+.server-logs-note { margin: 12px 0 0; color: #8a9db4; font-size: 10px; line-height: 1.6; }
+@media (max-width: 767.98px) {
+    .server-logs-panel { padding: 16px; }
+    .server-logs-actions { margin-left: 0; }
+    .server-log-button,.server-logs-select .form-select { min-height: 40px; }
+    .server-logs-filters .users-search { max-width: none; }
+    .server-logs-follow { margin-left: 0; }
+    #server-logs-meta { text-align: left; }
+    .server-logs-output { min-height: 280px; padding: 12px; }
+}

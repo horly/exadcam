@@ -1,5 +1,10 @@
 # Serveur GPS et vidéo EXADCAM
 
+> Depuis le 28 septembre, relecture des cartes SD et export MP4 : service
+> exadcam-recordings, entrée JT1078 1081/TCP, API privée 3004.
+> Les réponses 0x1205 multiparties sont désormais prises en charge.
+> Voir [Enregistrements SD](recordings.md) pour les accès, limites et validations.
+
 > Nomenclature, 28 septembre : le modèle commercial en base et dans l’interface
 > est ESTON ES500-603 JK114 ou 4G SmartVision JT808/1078. Le résolveur interne
 > continue de transmettre respectivement les clés de profil JK114 et ES500-603,

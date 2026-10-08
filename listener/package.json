@@ -10,7 +10,8 @@
     "test": "node --test test/*.test.js",
     "gps": "node src/gps.js",
     "video": "node src/video.js",
-    "audio": "node src/audio.js"
+    "audio": "node src/audio.js",
+    "recordings": "node src/recordings.js"
   },
   "dependencies": {
     "ws": "8.21.3"

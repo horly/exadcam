@@ -1,4 +1,5 @@
 import net from 'node:net';
+import {recordingQuery,recordingResources,recordingPlayback,recordingStop,RecordingFragments} from './recording-protocol.js';
 import { gpsKeepAliveOptions } from './transport-policy.js';
 import { backendCall, isTemporaryBackendError } from './backend-recovery.js';
 import { pathToFileURL } from 'node:url';
@@ -27,7 +28,8 @@ export function startGps() {
             closeReason ??= reason; closing = true; stopped.abort(); socket.end();
         };
         sockets.set(socket, disconnect);
-        const frames = new Frames808(), commands = new Map();
+        const frames = new Frames808(), commands = new Map(), recordingFragments = new RecordingFragments();
+        let archiveQuery = null;
         const send = (id, body) => { const n = serial++ & 65535; socket.write(encode808({ ...identity, id, serial: n, body })); return n; };
         const ack = (message, result = 0) => {
             const body = Buffer.alloc(5); body.writeUInt16BE(message.serial); body.writeUInt16BE(message.id, 2); body[4] = result; send(0x8001, body);
@@ -79,13 +81,21 @@ export function startGps() {
                 if (!capabilityRequest) capabilityRequest = session.command(0x9003,Buffer.alloc(0),0x1003).finally(() => { capabilityRequest = null; });
                 return capabilityRequest;
             },
-            async command(id, body, replyId = 0x0001) {
+            async recordings(data) {
+                if (archiveQuery) throw Object.assign(Error('Recording query already pending'),{status:409});
+                recordingFragments.clear();
+                const offset=Number(device.gps_timezone_minutes ?? process.env.GPS_TIMEZONE_MINUTES ?? 60);
+                archiveQuery=session.command(0x9205,recordingQuery(data,offset),0x1205,30000)
+                    .finally(()=>{archiveQuery=null;recordingFragments.clear();});
+                return archiveQuery;
+            },
+            async command(id, body, replyId = 0x0001, timeout = 8000) {
                 await authorize();
                 if (!authenticated || socket.destroyed) throw Object.assign(new Error('Device offline'), { status: 409 });
                 if (commands.size >= 8) throw new Error('Command queue full');
                 return new Promise((resolve, reject) => {
                     const sequence = send(id, body);
-                    const timer = setTimeout(() => { commands.delete(sequence); reject(new Error('Device command timeout')); }, 8000);
+                    const timer = setTimeout(() => { commands.delete(sequence); reject(new Error('Device command timeout')); }, timeout);
                     commands.set(sequence, { id, replyId, resolve, reject, timer });
                 });
             },
@@ -124,6 +134,22 @@ export function startGps() {
                     }
                     throw error;
                 }
+            }
+            if (authenticated && message.id === 0x1205) {
+                const pending=[...commands.entries()].find(([,c])=>c.replyId===0x1205);
+                if(!pending){ack(message);return;}
+                try {
+                    const body=recordingFragments.push(message);
+                    if(!body){ack(message);return;}
+                    const result=recordingResources(body,Number(device.gps_timezone_minutes ?? process.env.GPS_TIMEZONE_MINUTES ?? 60));
+                    if(result.serial!==pending[0]){ack(message,1);return;}
+                    clearTimeout(pending[1].timer);commands.delete(pending[0]);
+                    pending[1].resolve({records:result.records});ack(message);touchPresence();
+                }catch(error){
+                    recordingFragments.clear();clearTimeout(pending[1].timer);commands.delete(pending[0]);
+                    pending[1].reject(error);ack(message,1);
+                }
+                return;
             }
             if (message.fragmented) { ack(message, 3); return; }
             if (message.id === 0x0100) {
@@ -267,9 +293,16 @@ export function startGps() {
         if (path === '/disconnect') { session?.disconnect('platform_disconnect'); return reply(res, 200, { disconnected: true }); }
         if (!session || session.socket.destroyed) return reply(res, 409, { error: 'Device offline' });
         if (path === '/status') { await registry('id', id); return reply(res, 200, { online: true }); }
+        if (path === '/recordings/query') {
+            const device=await registry('id',id),channel=Number(data.channel);
+            if(!Number.isInteger(channel)||channel<0||channel>device.channels)return reply(res,422,{error:'Invalid channel'});
+            return reply(res,200,await session.recordings({...data,channel}));
+        }
         if (path === '/audio/capabilities') { await registry('id',id); return reply(res,200,await session.capabilities()); }
         const device = await registry('id', id), channel = Number(data.channel);
         if (!Number.isInteger(channel) || channel < 1 || channel > device.channels) return reply(res, 400, { error: 'Invalid channel' });
+        if (path === '/recordings/start') return reply(res,200,await session.command(0x9201,recordingPlayback(process.env.VIDEO_PUBLIC_HOST,Number(process.env.RECORDING_PORT||1081),{...data,channel},Number(device.gps_timezone_minutes??60))));
+        if (path === '/recordings/stop') return reply(res,200,await session.command(0x9202,recordingStop(channel)));
         if (path === '/live/start') return reply(res, 200, await session.command(0x9101, liveRequest(process.env.VIDEO_PUBLIC_HOST, Number(process.env.VIDEO_PORT || 1078), channel,channel===1?0:1)));
         if (path === '/live/stop') return reply(res, 200, await session.command(0x9102, Buffer.from([channel, 0, 2, 1])));
         if (['/audio/start','/audio/stop'].includes(path)) {

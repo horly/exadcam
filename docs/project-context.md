@@ -1,5 +1,113 @@
 # Contexte de développement EXADCAM
 
+État au 7 octobre 2026 : sélecteurs carte flottants déployés ; la case Afficher tous les véhicules ouvre les résultats sans recherche, sans plafond de 50 entrées. panneau carte simplifié déployé, trois compteurs Véhicules/En ligne/Hors ligne sur une ligne, Localisées et menu État retirés, Flotte réservé au superadmin. Compteurs utilisables pour filtrer et revenir à tous les véhicules ;  widgets du tableau de bord cliquables, navigation vers la carte filtrée en ligne/hors ligne et libellés/compteurs de véhicules côté client déployés ; menu Dashcams client retiré. Panneau carte adapté au design EXADCAM, actions « Trajets » et « Détails », sélecteur de lecture ×1 à ×64 déployés. Historique global/détaillé et repères départ/arrivée conservés. Les lieux restent des coordonnées GPS exactes. Voir les dernières entrées de project-history.md et google-maps.md pour les contrôles et limites.
+
+> 30 septembre, 16 h 37 Kinshasa : essai distant effectué sur le Hilux
+> SmartVision 352538106693487. Écriture 0x8103 du seul Backup standard 0x0017
+> vide acceptée (ACK 0) ; relecture : principal 62.171.190.15:7808 inchangé,
+> Backup standard vide, déjà vide avant essai. Cela ne prouve pas l’effacement
+> des backups propriétaires CarAssist. Huit tests ciblés réussis, inspecteur
+> refermé, aucun redémarrage. Pas de passage par Windows/Wi-Fi. Tous les
+> backups ne sont pas encore vérifiés supprimés ; voir la dernière entrée de
+> docs/smartvision-server-parameters.md. Aucun formulaire d’envoi réintroduit.
+> Une nouvelle coupure par le pair et une reconnexion spontanée ont eu lieu.
+> Relecture après reconnexion à 16 h 40 min 51 s : principal inchangé, Backup
+> standard vide. La stabilité durable n’est pas démontrée.
+
+
+> 30 septembre, 16 h 17 Kinshasa : connexion directe confirmée au Hilux
+> SmartVision 352538106693487. La caméra répond à la lecture serveur : principal
+> 62.171.190.15:7808, déjà correct et conservé. Backup standard vide, autres
+> destinations CarAssist non vérifiables par cette lecture ; aucune suppression
+> de Backup ni commande d’écriture. Deux tests du lecteur réussis, inspecteur
+> refermé, PID GPS conservé. Contrôle à 16 h 20 : session de nouveau absente
+> (HTTP 409), dernier contact 16 h 19 ; cause non établie, stabilité non résolue.
+> Voir docs/smartvision-server-parameters.md.
+
+> 30 septembre : retrait du formulaire SmartVision **déployé** à 16 h 11
+> (Kinshasa), faute d’envoi opérationnel. Bouton et modale absents du registre ;
+> un brouillon conservé, contenu vérifié identique avant/après. Seules deux
+> vues remplacées, cache des vues purgé ; six services actifs, PID inchangés.
+> Aucune configuration expédiée aux caméras. Le lot local a passé 48 tests
+> ciblés / 357 assertions avant déploiement. Les descriptions du formulaire
+> livré le 29 septembre ci-dessous constituent l’historique.
+
+> 29 septembre : **Formulaire SmartVision complet livré et déployé**, suivant le
+> choix explicite « formulaire complet avec envoi en attente ». Superadmin :
+> Flottes → Dashcams → Configuration SmartVision. Principal, trois serveurs
+> secondaires et identifiants ; sauvegarde par caméra, révision/auteur/date,
+> protection des onglets périmés. Les valeurs actuelles ne sont pas lues dans
+> ce formulaire. Envoi désactivé, aucun traitement automatique, aucune commande
+> matérielle. Le Backup du Hilux reste inchangé. ESTON hors périmètre. Tests
+> ciblés 48 / 350 assertions et navigateur local/production vérifiés ; aucun
+> redémarrage de service. Voir docs/smartvision-server-parameters.md.
+
+
+> Commande générale CarAssist identifiée : settings/get/what avec 11 sections explicites (dont jt808). Elle lit les réglages ; la visibilité des formulaires reste conditionnelle. Aucune commande cloud exécutée ni suppression de Backup réalisée. Détails dans docs/smartvision-server-parameters.md.
+
+> Lecture des Backups identifiée dans CarAssist : relais settings/get/what=[jt808], champs ipbak/portbak/ipbak2/portbak2. Requête cloud non exécutée faute de session et SN CarAssist. Lecture directe complémentaire du Hilux : 0x0017 vide, 0x0026 quatre octets nuls. Aucune suppression appliquée. Voir docs/smartvision-server-parameters.md.
+
+> 29 septembre : Véhicule 2 est désormais Nissan Patrol 1387AA10 (confirmé en production). Retrait du Backup du Hilux SmartVision 9863BV01 autorisé mais pas encore appliqué : le Backup CarAssist n’est pas identifié dans les paramètres JT808 renvoyés. Principal 62.171.190.15:7808 vérifié. Accès Windows indisponible ; utilisateur sans accès au formulaire distant. Le code CarAssist prévoit une entrée conditionnelle « JT808/1078 config » en bas des paramètres, avant les mises à jour, et son envoi cloud ; disponibilité réelle non confirmée. Voir la dernière entrée du journal.
+
+> 28 septembre : module Rapports livré : Synthèse de flotte, Trajets et arrêts,
+> Utilisation et Sécurité, filtres, modèles personnels, comparaison de périodes,
+> datatable cinq lignes, export PDF/XLSX et contexte carte/enregistrements.
+> Calcul asynchrone sur les relevés existants ; distances estimées, confirmation
+> minimale des trajets, périodes manquantes/incertaines explicites. Résultats
+> privés 24 h, aucun changement des caméras. Voir [Rapports](reports.md).
+
+
+> Préférence utilisateur : toujours proposer un bouton **Restaurer par défaut**
+> dans les écrans de personnalisation. Bouton permanent livré pour les deux rôles ;
+> aperçu puis Enregistrer pour appliquer. L’admin client peut aussi renommer sa
+> propre flotte ; le retour au logo par défaut conserve le nom enregistré.
+> Menu Enregistrements désormais placé immédiatement après Carte.
+
+
+> 28 septembre : Personnalisation livrée avec deux périmètres. Superadmin :
+> identité, logos/favicon, couleurs, support et fond Google Maps. Admin client :
+> nom et logo de sa flotte ; EXADCAM / VIDÉO & GPS conservés à côté.
+> Images privées, droits serveur et isolation des flottes ; aperçus et restauration.
+> Voir [Personnalisation](customization.md). Aucun redémarrage des listeners.
+
+
+> Monitoring : boutons Pause/Rafraîchir retirés à la demande de l’utilisateur ;
+> actualisation automatique 5 s conservée. Stockage affiché en Go/To décimaux,
+> libellé Volume EXADCAM. Le serveur expose un seul disque virtuel de 1 200 Gio
+> (1,288 To bruts), volume applicatif 1,247 To. Les 600 Go de base + extension
+> 1,2 To annoncés ne sont pas visibles comme un total de 1,8 To ; affectation
+> de l’extension à vérifier côté hébergeur. Aucun changement de partition.
+
+> 28 septembre : menu Monitoring livré après Logs serveur, superadmin uniquement.
+> Mesures réelles CPU, RAM, disque, charge, réseau et système ; collecte 5 s,
+> historique récent jusqu’à 15 min et présentation responsive.
+> Collecteur indépendant ; aucun redémarrage des quatre listeners des caméras.
+> Voir [Monitoring serveur](server-monitoring.md).
+
+> 28 septembre : menu Logs serveur livré au superadmin uniquement, sans console.
+> Journaux réels GPS TCP, vidéo, audio, enregistrements et Laravel ; filtres,
+> 100/300/600/1000 lignes, rafraîchissement 5 s, Pause/Reprendre. Collecteur
+> dédié en lecture seule, aucun redémarrage des listeners des caméras.
+> Voir [Logs serveur](server-logs.md) pour les limites et contrôles.
+
+> Enregistrements : tableau harmonisé avec Véhicules/Dashcams, recherche dans
+> tous les résultats, tri des colonnes, tailles 5/10/25/50 (5 par défaut),
+> pagination numérotée et compteur. Déployé le 28 septembre, testé sur les
+> 634 entrées réelles de Véhicule 2 ; aucun redémarrage des listeners.
+
+> 28 septembre : présentation Enregistrements harmonisée avec EXADCAM.
+> Champs et boutons compacts ; recherche des véhicules en superposition, sans
+> déplacement des filtres. Vérifié sur ordinateur, tablette et mobile.
+> Correctif CSS/Blade déployé sans redémarrage des services des caméras.
+
+> 28 septembre : menu Enregistrements SD livré pour ESTON et SmartVision,
+> recherche par véhicule/date/canal, dix résultats par page, relecture et MP4.
+> Essais matériels réussis sur Suzuki Horly ESTON et Véhicule 2 SmartVision.
+> Accès limité à la flotte et à l’affectation courante ; fichiers temporaires 6 h,
+> extraits limités à 30 min/512 Mio. Voir [Enregistrements](recordings.md).
+> Le service GPS a été rechargé pour ce lot : la session de 64 h mentionnée
+> ci-dessous est une observation antérieure, pas la durée de la nouvelle session.
+
 > Nomenclature corrigée et déployée le 28 septembre, données existantes migrées :
 > JK114 → ESTON ES500-603 JK114 ; ES500-603 → 4G SmartVision JT808/1078.
 > Les anciennes clés subsistent uniquement dans le contrat interne des profils

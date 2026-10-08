@@ -29,6 +29,18 @@
         empty.setAttribute('role', 'status');
         panel.append(search, choices, empty); root.append(toggle, panel);
 
+        const mapPanel = root.closest('.tracking-panel');
+        // Keep map dropdowns out of document flow and within the visible panel.
+        function positionMapDropdown() {
+            if (!mapPanel || panel.hidden) return;
+            const bounds = mapPanel.getBoundingClientRect(), anchor = root.getBoundingClientRect();
+            const above = Math.max(0,anchor.top - Math.max(8,bounds.top + 8) - 6);
+            const below = Math.max(0,Math.min(window.innerHeight - 8,bounds.bottom - 8) - anchor.bottom - 6);
+            const opensUp = below < Math.min(240,panel.scrollHeight) && above > below;
+            panel.style.top = opensUp ? 'auto' : 'calc(100% + 6px)';
+            panel.style.bottom = opensUp ? 'calc(100% + 6px)' : 'auto';
+            panel.style.maxHeight = Math.floor(opensUp ? above : below)+'px';
+        }
         function close() { panel.hidden = true; root.classList.remove('is-open'); toggle.setAttribute('aria-expanded', 'false'); }
         function sync() {
             label.textContent = select.selectedOptions[0]?.textContent || select.options[0]?.textContent || '';
@@ -64,15 +76,21 @@
                 choices.append(button);
             });
             empty.hidden = matches.length > 0;
+            positionMapDropdown();
         }
         function open() {
             if (select.matches(':disabled')) return;
             document.querySelectorAll('.searchable-select.is-open').forEach(other => other.dispatchEvent(new Event('searchable-select:close')));
             panel.hidden = false; root.classList.add('is-open'); toggle.setAttribute('aria-expanded', 'true');
-            search.value = ''; render(); search.focus();
-            // Keep the dropdown inside the scrollable modal, even near its footer.
-            panel.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+            search.value = ''; render();
+            if (mapPanel) search.focus({ preventScroll: true });
+            else {
+                search.focus();
+                panel.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+            }
         }
+        mapPanel?.addEventListener('scroll', close);
+        if (mapPanel) window.addEventListener('resize', positionMapDropdown);
         toggle.addEventListener('click', () => panel.hidden ? open() : close());
         search.addEventListener('input', render);
         select.addEventListener('change', sync);

@@ -3,6 +3,7 @@
 @section('title', __('Connexion'))
 
 @section('content')
+    <div class="auth-main-brand"><img class="company-logo" src="{{ $branding['logo'] }}" alt="{{ $branding['settings']['app_name'] }}" width="110" height="52"></div>
     <div class="form-heading">
         <div class="form-eyebrow">{{ __('L’ESPACE DE VOTRE FLOTTE') }}</div>
         <h1>{{ __('Bienvenue dans') }}<br><span>{{ __('votre espace.') }}</span></h1>
@@ -65,7 +66,7 @@
     <div class="modal fade" id="access-help" tabindex="-1" aria-labelledby="access-help-title" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
             <div class="modal-header"><h2 class="modal-title fs-5" id="access-help-title">{{ __('Besoin d’aide pour vous connecter ?') }}</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Fermer') }}"></button></div>
-            <div class="modal-body"><p>{{ __('Si vous n’avez pas encore de compte ou si vous avez oublié votre mot de passe, contactez votre administrateur EXADCAM en lui indiquant votre adresse e-mail.') }}</p><p class="mb-0 text-secondary">{{ __('La récupération automatique par e-mail n’est pas encore disponible.') }}</p></div>
+            <div class="modal-body"><p>{{ __('Si vous n’avez pas encore de compte ou si vous avez oublié votre mot de passe, contactez votre administrateur EXADCAM en lui indiquant votre adresse e-mail.') }}</p>@include('partials.support-contact')<p class="mb-0 text-secondary">{{ __('La récupération automatique par e-mail n’est pas encore disponible.') }}</p></div>
             <div class="modal-footer"><button type="button" class="btn auth-dialog-button" data-bs-dismiss="modal">{{ __('Compris') }}</button></div>
         </div></div>
     </div>

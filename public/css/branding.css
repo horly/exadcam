@@ -1,0 +1,42 @@
+:root {
+    --exad-primary: var(--brand-primary);
+    --exad-chart-secondary: var(--brand-secondary);
+    --exad-sidebar: var(--brand-sidebar-end);
+    --auth-primary: var(--brand-button);
+    --auth-accent: var(--brand-accent);
+}
+/* Shared theme overrides loaded after module styles. Operational status colors remain semantic. */
+.app-sidebar.corporate-sidebar.offcanvas-lg { background: linear-gradient(175deg,var(--brand-sidebar-start),var(--brand-sidebar-end)) !important; color: var(--brand-sidebar-text); }
+.corporate-sidebar .brand-link,.corporate-sidebar .sidebar-product-name,.corporate-sidebar .sidebar-nav .nav-link,.corporate-sidebar .sidebar-help,.corporate-sidebar .sidebar-dismiss { color: var(--brand-sidebar-text); }
+.corporate-sidebar .sidebar-nav .nav-link.active { background: color-mix(in srgb,var(--brand-secondary) 25%,transparent); color: var(--brand-sidebar-text); border-color: color-mix(in srgb,var(--brand-secondary) 30%,transparent); }
+.corporate-sidebar .nav-link.active::before { background: var(--brand-accent); }
+.corporate-sidebar .brand-link small,.corporate-sidebar .nav-section-label,.corporate-sidebar .sidebar-help small,.corporate-sidebar .sidebar-footer-brand,.corporate-sidebar .nav-icon { color: color-mix(in srgb,var(--brand-sidebar-text) 68%,transparent); }
+.corporate-sidebar .sidebar-company-logo { width: 68px; height: 40px; object-fit: contain; }
+.corporate-sidebar .brand-link-official { min-width: 0; }
+.corporate-sidebar .sidebar-product-name { min-width: 0; overflow-wrap: anywhere; }
+.corporate-topbar .topbar-avatar,.user-avatar,.users-avatar { background: var(--brand-avatar); color: var(--brand-avatar-text); }
+body .btn-primary,body .users-primary.btn-primary,body .recordings-panel .btn-primary {
+    --bs-btn-bg: var(--brand-button); --bs-btn-border-color: var(--brand-button); --bs-btn-color: var(--brand-button-text);
+    --bs-btn-hover-bg: color-mix(in srgb,var(--brand-button) 88%,#000); --bs-btn-hover-border-color: var(--brand-button); --bs-btn-hover-color: var(--brand-button-text);
+    --bs-btn-active-bg: var(--brand-button); --bs-btn-active-border-color: var(--brand-button); --bs-btn-active-color: var(--brand-button-text);
+    --bs-btn-disabled-bg: var(--brand-button); --bs-btn-disabled-border-color: var(--brand-button); --bs-btn-disabled-color: var(--brand-button-text);
+}
+.tracking-panel-actions .btn,.tracking-popup-actions button:last-child,.tracking-history-modal .modal-footer .btn,.users-page-button.active,.dashboard-pagination button[aria-current=page],.tracking-page-button[aria-current=page],.server-log-button.active,.chart-period button.active { background: var(--brand-button); border-color: var(--brand-button); color: var(--brand-button-text); }
+.auth-submit,.auth-dialog-button { background: var(--brand-button); border-color: var(--brand-button); color: var(--brand-button-text); }
+.auth-submit:hover,.auth-dialog-button:hover { background: color-mix(in srgb,var(--brand-button) 88%,#000) !important; color: var(--brand-button-text); }
+.auth-story { background-color: var(--brand-sidebar-start); }
+.brand-product strong,.page-heading h1,.panel-title h2,.metric-number strong,.users-stat strong,.sm-card h2,.sm-value,.chart-heading h2 { color: var(--brand-primary); }
+.auth-story .brand-product strong { color: #fff; }
+.metric-icon.indigo,.chart-heading-icon,.chart-dot-primary { color: var(--brand-primary); }
+.chart-dot-primary { background-color: var(--brand-primary); }
+.chart-dot-secondary,.chart-dot-status-1 { background-color: var(--brand-secondary); }
+.sm-meter span { background-color: var(--brand-accent); }
+.sm-disk-ring { background: conic-gradient(var(--brand-accent) var(--percent),#ecf1f8 0); }
+.form-check-input:checked,.users-permission input:checked { background-color: var(--brand-button); border-color: var(--brand-button); }
+.tracking-details-tabs button.active { color: var(--brand-primary); border-color: var(--brand-accent); }
+.brand-support { display: flex; flex-wrap: wrap; flex-direction: column; gap: 8px; border-top: 1px solid #e3ebf5; padding-top: 15px; margin-top: 18px; font-size: 12px; }
+.brand-support a { color: var(--brand-primary); overflow-wrap: anywhere; }
+.brand-support strong { font-size: 12px; color: #7186a0; }
+.company-logo { object-fit: contain; }
+.auth-main-brand { margin-bottom: 22px; }
+.auth-main-brand .company-logo { width: 110px; height: 52px; object-fit: contain; object-position: left center; }

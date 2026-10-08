@@ -448,3 +448,82 @@ les documents de ce lot et tests/js/map-video-fullscreen.test.mjs sont aussi
 synchronisés sur le serveur EXADCAM. Les huit tests ciblés passent sur Linux.
 Les six fichiers applicatifs sont vérifiés identiques, sans nouveau déploiement
 fonctionnel ni redémarrage des services caméra.
+
+
+## 5 octobre 2026 — Historique global et détaillé sur la carte
+
+Demande : appliquer à EXADCAM et EXAD Tracking Mobile le panneau d’historique inspiré des captures Navixy déjà livré sur EXAD Tracking web.
+
+EXADCAM : nouvelle action « Historique et trajets » dans la fiche sur la carte. Panneau blanc compact, périodes prédéfinies et dates personnalisées, résumé global puis chronologie des trajets, stationnements et arrêts moteur allumé. Sélection exclusive ou multiple, tout sélectionner, lignes colorées avec flèches, repères départ/arrivée, parking P, lecture visuelle du parcours, réduction/fermeture. La fiche technique et l’historique GPS paginé existants restent accessibles. Le suivi automatique ne déplace pas la carte pendant la consultation de l’historique.
+
+Calcul : MapTripHistoryService utilise une fenêtre unique de FleetReportBuilder sans période comparative. Les règles des rapports sont conservées ; pour la carte un arrêt observé d’au moins 60 secondes peut être affiché. Un trajet requiert 60 secondes, 100 m parcourus et une emprise de 50 m ; coupures de plus de 300 secondes et sauts GPS ne sont pas reliés. Les trajets peuvent donc différer du découpage d’un autre fournisseur. Les stationnements ne sont pas étendus jusqu’à la fin de la période. Les repères utilisent les coordonnées GPS des extrémités. Les lieux sont présentés en coordonnées exactes : aucune adresse de rue inventée, aucun nouvel appel de géocodage externe. La lecture est une animation du tracé, pas une reconstitution horodatée de la vitesse.
+
+Accès : GET /map/vehicles/{vehicle}/trips, permission map.view, flotte visible/active, caméra active actuellement affectée au véhicule, bornes des affectations caméra/véhicule et véhicule/flotte. Dates locales interprétées dans le fuseau demandé, stockage UTC, période de 32 jours maximum, limitation de débit et taille/temps du calcul, Cache-Control privé sans stockage. Réponses tardives ou annulées ignorées. Aucun changement de paramètres caméra ni commande envoyée.
+
+Fichiers : MapController, MapTripHistoryService, FleetMapService, FleetReportBuilder, routes/web.php, dashboard-map.blade.php, google-map.js, map-trip-history.mjs, map-trip-history.css et traductions map FR/EN. Tests : MapTripHistoryTest et map-trip-history.test.mjs.
+
+Contrôles effectués : 31 tests PHP ciblés (273 assertions) couvrant carte, historique et rapports ; 7 tests ciblés supplémentaires (40 assertions, dont des cas déjà inclus dans les 31) pour historique et rendu Blade. 18 tests JavaScript avec carte/DOM simulés, dont sélection, repères et fermeture. Syntaxes PHP/JS, compilation des vues de production et diff --check vérifiés. Aucun essai visuel dans un navigateur connecté ni essai caméra physique pendant ce lot.
+
+Déploiement EXADCAM réussi le 2026-10-05T12:57:15.553531+00:00 : 11 fichiers installés et empreintes contrôlées, route disponible, vues reconstruites, PHP-FPM rechargé. /login, /up et les deux ressources d’historique répondent HTTP 200. Sauvegarde : /var/backups/cam-history-20261005-125714.tar.gz. GPS, vidéo et audio actifs, PID conservés. Aucun redémarrage des listeners, aucune migration de base.
+
+EXAD Tracking Mobile : API de trajets étendue de façon additive avec history.items, durées de parking et extrémités exactes, déployée le 2026-10-05T12:56:46.627123+00:00. Panneau intégré à la carte (en bas sur téléphone, à gauche sur écran large), vue globale, détail, sélection multiple, parking, départ/arrivée et lecture. Les anciennes réponses sans history restent lisibles. Build 1.0.0+40 signé produit ; il n’est pas publié dans Google Play par ce déploiement web.
+
+
+## 6 octobre 2026 — Design EXADCAM, Trajets/Détails et vitesse de lecture
+
+Demande : conserver le design EXADCAM pour le panneau, nommer les actions simplement « Trajets » et « Détails », ajouter la vitesse manquante.
+
+Livraison : libellés FR/EN raccourcis dans la fiche et le titre du panneau, icônes route/information distinctes, composants locaux arrondis, couleurs de marque, dates et commandes plus lisibles. Panneau de 420 px à gauche ; sur petit écran, départ à 30 % de la carte. Sélecteur ×1/×2/×4/×8/×16/×32/×64, modifiable pendant la lecture, désactivé lorsque plusieurs trajets ou un parking sont sélectionnés. Le temps total de lecture correspond désormais à la durée du trajet divisée par la vitesse choisie. La progression conserve les fractions (range step=any), y compris sur les longs trajets. L’animation reste une interpolation du tracé, sans reconstitution des horodatages de chaque point.
+
+Fichiers : public/js/map-trip-history.mjs, google-map.js, public/css/map-trip-history.css, dashboard-map.blade.php, traductions map FR/EN ; tests/js/map-trip-history.test.mjs. Versions des assets modifiées pour invalider le cache navigateur.
+
+Contrôles exécutés pendant ce lot : 5 tests Node du panneau (dont vitesses, durée, fin, disponibilité du sélecteur), syntaxe JS, 3 tests DashboardMapTest / 14 assertions sur SQLite isolé, diff --check ciblé. Aucun navigateur connecté pour une recette visuelle web. Pas de nouvelle validation caméra physique.
+
+Déployé le 2026-10-06T07:23:26.968072+00:00, six fichiers avec empreintes avant/après contrôlées. Sauvegarde /var/backups/cam-history-20261006-072325.tar.gz (SHA-256 7b359e559bd88e1e396866c131ca3013f749404703358953618aa1e325d86be6). Vues recompilées, PHP-FPM rechargé ; login/up et ressources CSS/JS HTTP 200 avec empreintes conformes. GPS, vidéo et audio actifs avec PID conservés. Aucune migration, aucun changement de listener ni de configuration d’équipement.
+
+
+## 6 octobre 2026 — Widgets cliquables et navigation client
+
+Demande : widgets du tableau de bord cliquables, véhicules équipés vers Véhicules, Dashcams vers le registre pour superadmin et vers Véhicules pour les clients, suppression du menu Dashcams client, libellés Véhicules en ligne/hors ligne et accès à la carte filtrée ; alertes vers Alertes.
+
+Livraison : les indicateurs sont des liens natifs accessibles au clavier, avec survol et focus visibles. La carte s’ouvre via #map?connection=online ou offline ; ces liens supportent le rechargement et le retour navigateur. Le raccourci réinitialise flotte/département/recherche, ferme les anciens trajets/vidéos, désactive le suivi individuel et active Afficher tous avant cadrage. Le filtre utilise online (pas uniquement les états GPS moving/offline) : un véhicule stationné ou sans position GPS peut être connecté ; une caméra jamais connectée appartient au filtre hors ligne. Les véhicules sans caméra active sont exclus du filtre hors ligne. Les véhicules sans position restent consultables dans la liste, sans point inventé sur la carte.
+
+Client : menu Dashcams retiré, anciens liens #dashcams redirigés vers Véhicules. Indicateurs et graphique utilisent les libellés véhicules et les compteurs online_vehicles/offline_vehicles, une fois par véhicule équipé, cohérents avec la source choisie par la carte. Le superadmin conserve les compteurs et le registre des caméras. Le widget de disponibilité ouvre le registre adapté au rôle ; ses liens En ligne/Hors ligne ouvrent la carte filtrée. Les permissions existantes restent appliquées : sans droit de gestion des véhicules, le raccourci ouvre la liste de véhicules en lecture seule ; sans map.view, pas de lien vers carte/alertes. Les accès vidéo existants sont conservés.
+
+Fichiers : DashboardService, welcome, nouveau partial dashboard-metrics, sidebar, layout app, dashboard-charts, dashboard-map, app.js, google-map.js, nouveau map-dashboard-filter.mjs, dashboard-real.css et traductions dashboard FR/EN. Tests : RealDashboardTest et dashboard-map-filter.test.mjs.
+
+Contrôles effectués : 26 tests PHP ciblés / 234 assertions (tableau de bord, carte et rendu), base SQLite en mémoire, et 5 tests Node (filtres, remise à zéro, navigation, liens clients/superadmin). Syntaxes PHP/JS et diff --check ciblé conformes. Premier essai PHP interrompu par un conflit d’identifiants dans une caméra fictive du nouveau test, corrigé avant le passage final. Aucun navigateur connecté pour une recette visuelle interactive web.
+
+Déployé le 2026-10-06T08:30:37.336247+00:00 : 13 fichiers, empreintes avant/après vérifiées, vues recompilées et PHP-FPM rechargé. Sauvegarde /var/backups/cam-dashboard-widgets-20261006-083034.tar.gz, SHA-256 a04718a68aac8fd94b5ef02834d9adec22ca0aed9bea66d1428fb7dc85e7dcd5. Login/up et quatre ressources publiques HTTP 200, ressources conformes aux empreintes. GPS, vidéo et audio actifs avec PID inchangés. Aucune migration, aucune modification des équipements. Reçus et sources avant/après : DASHCAM/analysis/dashboard-widgets-20261006/.
+
+## 7 octobre 2026 — Simplification du panneau de carte
+
+Demande : conserver trois compteurs sur une ligne (Véhicules, En ligne, Hors ligne), retirer Localisées/Positionnés et le sélecteur État/Tous les états, réserver le filtre Flotte au superadmin. Même présentation simplifiée côté client, dans le design propre à chaque plateforme.
+
+Les compteurs sont accessibles au clavier et permettent de sélectionner tous les véhicules, ceux en ligne ou ceux hors ligne ; le compteur Véhicules permet de revenir à tous les états après un raccourci du tableau de bord. L'état actif reste visible. Le champ d'état interne est caché, les liens filtrés existants sont conservés. Trois colonnes sans défilement horizontal sur petit écran ; icônes sous les libellés. Permissions serveur inchangées.
+
+EXADCAM : le sélecteur Flotte n'est plus rendu pour les clients ; le code accepte son absence, y compris dans applyDashboardConnection. Le filtre Département reste disponible lorsqu'il existe des départements. Fichiers : dashboard-map.blade.php, google-map.css, google-map.js, map-dashboard-filter.mjs ; test existant dashboard-map-filter.test.mjs complété pour l'absence du sélecteur client. Assets versionnés map-panel-20261007.
+
+Contrôles de ce lot : 26 tests PHP ciblés / 234 assertions (DashboardMapTest, FleetMapTest, RealDashboardTest), base SQLite isolée ; 5 tests Node de filtres/navigation réussis. Syntaxe JS et diff --check ciblé conformes. Aucun navigateur connecté pour une recette visuelle interactive. Pas de validation matérielle nécessaire pour ce changement d'interface.
+
+Déployé le 2026-10-07T07:53:50.826106+00:00 : quatre fichiers applicatifs, empreintes avant/après et ressources HTTP contrôlées, vues recompilées, PHP-FPM rechargé. Sauvegarde /var/backups/cam-map-panel-20261007-075349.tar.gz, SHA-256 2d7f8e920a64591b51da2c9d306c61b2ae0cbd3352a8d80f65860654896fcb9a. Login, santé et ressources modifiées HTTP 200. Services actifs, PID des listeners inchangés. Aucune migration ni commande aux équipements.
+
+Modification également livrée sur EXAD Tracking web, à la demande explicite de l'utilisateur. Sources, sauvegardes locales et reçus : DASHCAM/analysis/map-panel-20261007/.
+
+## 7 octobre 2026 — Sélecteur flottant et résultats de tous les véhicules
+
+Demande : faire flotter le sélecteur Flotte sans déplacer les éléments du dessous et afficher les véhicules dans les résultats lorsque « Afficher tous les véhicules » est coché, même sans recherche.
+
+Menus de sélection de la carte en position absolue au-dessus du contenu, ouverts vers le haut si nécessaire, hauteur bornée à l'espace visible et défilement limité aux options. La mise au point ne fait plus défiler le panneau. Fermeture lors du défilement du panneau parent ; fermeture extérieure, clavier et sélection existants conservés. Portée CSS/JS limitée aux panneaux de carte, comportement des formulaires/modales préservé.
+
+Les résultats apparaissent lorsque la case est cochée ou qu'une recherche est saisie. Suppression des plafonds d'affichage (50 EXADCAM, 12 EXAD Tracking) : toutes les entrées du jeu de données filtré sont accessibles dans la liste défilante. Les filtres de flotte, d'état et de recherche restent appliqués. Pas de modification de l'API ni des autorisations ; EXAD Tracking conserve son flux cartographique de véhicules positionnés. EXADCAM conserve également l'affichage des résultats via les raccourcis En ligne/Hors ligne.
+
+Version des ressources modifiées : map-overlay-20261007. Aucun navigateur connecté pour une recette visuelle interactive ; syntaxe JS et diff --check ciblé conformes.
+
+Fichiers EXADCAM : public/js/searchable-select.js, public/js/google-map.js, public/css/google-map.css, resources/views/partials/dashboard-map.blade.php, resources/views/dashcams/module.blade.php (version du sélecteur partagé).
+
+Contrôles exécutés : 16 tests PHP / 134 assertions (DashboardMapTest et FleetMapTest) sur SQLite isolé ; 5 tests Node de filtres/navigation réussis. Il s'agit de tests ciblés existants, pas d'une validation visuelle de la géométrie du menu.
+
+Déployé le 2026-10-07T08:12:27.996261+00:00 : cinq fichiers applicatifs avec empreintes avant/après vérifiées. Sauvegarde /var/backups/cam-map-overlay-20261007-081225.tar.gz, SHA-256 34e66341cbe7aa2a09076e8c0ac0769f2ff069e9b43ae8674e11d57edda0cb12. Vues recompilées, PHP-FPM rechargé. Login, santé et ressources CSS/JS HTTP 200, empreintes des ressources conformes. Services actifs et PID des listeners conservés. Aucune migration ni commande aux équipements.
+
+Reçus et sources avant/après : DASHCAM/analysis/map-overlay-20261007/. Même correction livrée sur EXAD Tracking web.

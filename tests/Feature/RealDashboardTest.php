@@ -102,3 +102,51 @@ it('does not reveal GPS or alerts to video only users, inactive fleets or guests
     $this->getJson('/dashboard/data')->assertUnauthorized();
     $this->getJson('/dashboard/alerts')->assertUnauthorized();
 });
+
+it('links dashboard cards to scoped destinations and hides the client dashcam navigation', function () {
+    $response = $this->actingAs($this->admin)->get('/')->assertOk();
+    $response->assertSee('Véhicules en ligne')->assertSee('Véhicules hors ligne')->assertSee('État des véhicules')
+        ->assertDontSee('Dashcams en ligne')->assertDontSee('Dashcams hors ligne')->assertDontSee('data-nav="dashcams"', false)
+        ->assertSee('data-dashcams-view="vehicles"', false);
+    $doc = new DOMDocument;
+    @$doc->loadHTML('<?xml encoding="utf-8" ?>'.$response->getContent());
+    $xpath = new DOMXPath($doc);
+    foreach (['#vehicles', '#map?connection=online', '#map?connection=offline', '#alerts'] as $href) {
+        expect($xpath->query('//a[contains(@class,"metric-card-link") and @href="'.$href.'"]')->length)->toBe(1);
+    }
+    expect($xpath->query('//a[@class="dashboard-widget-link" and @href="#vehicles"]')->length)->toBe(1);
+    $superadmin = User::factory()->create(['role' => 'superadmin']);
+    $response = $this->actingAs($superadmin)->get('/')->assertOk()->assertSee('Dashcams en ligne')->assertSee('Dashcams hors ligne')
+        ->assertSee('data-nav="dashcams"', false)->assertSee('data-dashcams-view="dashcams"', false);
+    @$doc->loadHTML('<?xml encoding="utf-8" ?>'.$response->getContent());
+    expect((new DOMXPath($doc))->query('//a[@class="dashboard-widget-link" and @href="#dashcams"]')->length)->toBe(1);
+});
+
+it('counts client vehicles once and keeps camera counters for the platform', function () {
+    ($this->position)(now()->subSeconds(5));
+    $second = Dashcam::create(['name' => 'Second camera', 'imei' => '777654321022345', 'vehicle_id' => $this->car->id]);
+    $second->forceFill(['last_seen_at' => now()->subMinutes(10), 'vehicle_assigned_at' => now()->subDay()])->save();
+    Vehicle::create(['name' => 'No camera', 'fleet_id' => $this->fleet->id]);
+    $pendingCar = Vehicle::create(['name' => 'Pending vehicle', 'fleet_id' => $this->fleet->id]);
+    Dashcam::create(['name' => 'Never connected', 'imei' => '777654321012346', 'vehicle_id' => $pendingCar->id]);
+    $this->actingAs($this->admin)->getJson('/dashboard/data')->assertOk()
+        ->assertJsonPath('metrics.vehicles', 2)->assertJsonPath('metrics.dashcams', 3)
+        ->assertJsonPath('metrics.online_vehicles', 1)->assertJsonPath('metrics.offline_vehicles', 1)
+        ->assertJsonPath('charts.status.series', [1, 1])->assertJsonPath('charts.labels.dashcams', 'Véhicules');
+    $map = collect($this->getJson('/map/vehicles')->assertOk()->json('vehicles'))->whereNotNull('source_id');
+    expect($map->where('online', true)->count())->toBe(1)->and($map->where('online', false)->count())->toBe(1);
+    $this->actingAs(User::factory()->create(['role' => 'superadmin']))->getJson('/dashboard/data')->assertOk()
+        ->assertJsonPath('metrics.online', 1)->assertJsonPath('metrics.offline', 2)->assertJsonPath('charts.status.series', [1, 2])->assertJsonPath('charts.labels.dashcams', 'Dashcams');
+});
+
+it('keeps restricted users within their read-only vehicle access without map shortcuts', function () {
+    $viewer = User::factory()->create(['role' => 'user', 'fleet_id' => $this->fleet->id, 'permissions' => ['video.view']]);
+    $response = $this->actingAs($viewer)->get('/')->assertOk()->assertSee('Véhicules en ligne')->assertDontSee('data-nav="dashcams"', false)
+        ->assertSee('data-dashcams-view="fleet"', false);
+    $doc = new DOMDocument;
+    @$doc->loadHTML('<?xml encoding="utf-8" ?>'.$response->getContent());
+    $xpath = new DOMXPath($doc);
+    expect($xpath->query('//a[contains(@class,"metric-card-link")]')->length)->toBe(1)
+        ->and($xpath->query('//a[contains(@class,"metric-card-link") and @href="#fleet"]')->length)->toBe(1);
+    $this->getJson('/map/vehicles')->assertForbidden();
+});

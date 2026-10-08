@@ -48,7 +48,7 @@ export function decode808(frame) {
     if (modern && raw[4] !== 1) throw new Error('Unsupported version');
     return { id: raw.readUInt16BE(0), version: modern ? '2019' : '2013', fragmented,
         terminal: decodeBcd(raw.subarray(modern ? 5 : 4, modern ? 15 : 10)),
-        serial: raw.readUInt16BE(modern ? 15 : 10), body: raw.subarray(size, -1) };
+        serial: raw.readUInt16BE(modern ? 15 : 10), ...(fragmented ? {packetTotal:raw.readUInt16BE(size-4),packetIndex:raw.readUInt16BE(size-2)} : {}), body: raw.subarray(size, -1) };
 }
 
 export class Frames808 {

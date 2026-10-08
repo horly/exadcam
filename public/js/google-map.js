@@ -11,6 +11,8 @@
     const { audioControls } = await import('./live-audio.mjs?v=talk-direction-20260924');
     const {attachLivePlayer, resetLivePlayer} = await import('./live-player.mjs?v=live-pipeline-20260924');
     const {createVideoFullscreen,observeMapLayout} = await import('./map-video-fullscreen.mjs?v=map-layout-20260925');
+    const { createTripHistory } = await import('./map-trip-history.mjs?v=history-design-20261005');
+    const {dashboardConnection,matchesMapState,applyDashboardConnection} = await import('./map-dashboard-filter.mjs?v=map-panel-20261007');
     const element = id => document.getElementById(id);
     const vehicleAudio = audioControls(element('tracking-video-audio'));
     const workspace = element('tracking-workspace'), canvas = element('google-fleet-map');
@@ -18,6 +20,9 @@
     const list = element('tracking-vehicle-list'), mapMessage = element('tracking-map-message'), feedMessage = element('tracking-feed-message');
     const auto = element('tracking-auto'), follow = element('tracking-follow'), showTrails = element('tracking-trails');
     const markers = new Map(), rows = new Map();
+    const tripHistory = createTripHistory({host:element('tracking-map-area'),getMap:()=>map,getMarker:()=>Marker,labels,icon,
+        onOpen:()=>{follow.checked=false;infoWindow?.close();element('tracking-panel').classList.add('history-covered');},
+        onClose:()=>element('tracking-panel').classList.remove('history-covered')});
     const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
     let vehicles = [], selectedId = null, map, Marker, loading, timer, controller, requestSequence = 0, generation = null;
     let infoWindow, popupVehicleId = null, popupFields = null, popupSubtitle = null, popupDot = null, videoVehicle = null, videoGeneration = 0;
@@ -34,9 +39,9 @@
     }
     function filtered() {
         const query = normalize(element('tracking-search').value);
-        return vehicles.filter(vehicle => (!fleetFilter.value || String(vehicle.fleet.id) === fleetFilter.value)
+        return vehicles.filter(vehicle => (!fleetFilter?.value || String(vehicle.fleet.id) === fleetFilter.value)
             && (!departmentFilter.value || (departmentFilter.value === 'none' ? !vehicle.department : String(vehicle.department?.id) === departmentFilter.value))
-            && (!stateFilter.value || vehicle.state === stateFilter.value)
+            && matchesMapState(vehicle,stateFilter.value)
             && normalize([vehicle.name,vehicle.registration,vehicle.fleet.name,vehicle.department?.name,vehicle.camera_name,vehicle.equipment?.imei,vehicle.equipment?.model].filter(Boolean).join(' ')).includes(query));
     }
     function displayed() {
@@ -44,6 +49,7 @@
         return document.body.dataset.view === 'overview' || element('tracking-show-all').checked ? matches : matches.filter(v => v.id === selectedId);
     }
     function replaceOptions(select, options) {
+        if (!select) return;
         const signature = JSON.stringify(options);
         if (select.dataset.optionsSignature === signature) return;
         const value = select.value;
@@ -55,7 +61,7 @@
     function updateFilters() {
         const fleets = new Map(vehicles.map(vehicle => [String(vehicle.fleet.id),vehicle.fleet.name]));
         replaceOptions(fleetFilter, [['',labels.all_fleets],...fleets.entries()].sort((a,b) => a[0] && b[0] ? a[1].localeCompare(b[1],config.locale) : 0));
-        const departments = new Map(vehicles.filter(vehicle => vehicle.department && (!fleetFilter.value || String(vehicle.fleet.id) === fleetFilter.value)).map(vehicle => [String(vehicle.department.id), vehicle.department.name]));
+        const departments = new Map(vehicles.filter(vehicle => vehicle.department && (!fleetFilter?.value || String(vehicle.fleet.id) === fleetFilter.value)).map(vehicle => [String(vehicle.department.id), vehicle.department.name]));
         element('tracking-department-filter').hidden = departments.size === 0;
         replaceOptions(departmentFilter, [['',labels.all_departments],['none',labels.none_department],...departments.entries()]);
     }
@@ -147,12 +153,14 @@
         close.addEventListener('click',() => { infoWindow.close(); popupVehicleId = null; });
         header.append(popupDot,identity,close);
         const actions = document.createElement('div'); actions.className = 'tracking-popup-actions';
-        const details = document.createElement('button'); details.type = 'button'; details.append(icon('clock'),document.createTextNode(labels.history_details));
+        const details = document.createElement('button'); details.type = 'button'; details.append(icon('info'),document.createTextNode(labels.history_details));
         details.addEventListener('click',() => openHistory(vehicles.find(v => v.id === vehicle.id) || vehicle));
         const video = document.createElement('button'); video.type = 'button'; video.append(icon('camera'),document.createTextNode(labels.video));
         video.disabled = !config.canVideo || !vehicle.equipment; video.title = video.disabled ? labels.video_forbidden : labels.video;
         video.addEventListener('click',() => { const current = vehicles.find(v => v.id === vehicle.id); if (current) void openVideo(current); });
-        actions.append(details,video); content.append(header,popupFields,actions);
+        const trips = document.createElement('button'); trips.type='button'; trips.append(icon('route'),document.createTextNode(labels.trips_history));
+        trips.addEventListener('click',()=>tripHistory.open(vehicles.find(v=>v.id===vehicle.id)||vehicle));
+        actions.append(trips,details,video); content.append(header,popupFields,actions);
         popupVehicleId = vehicle.id; updatePopup(vehicle);
         infoWindow.setContent(content); infoWindow.setPosition(markers.get(vehicle.id)?.displayed || vehicle.position); infoWindow.open({map,shouldFocus:false});
     }
@@ -187,11 +195,11 @@
                     if (popupVehicleId === vehicle.id) infoWindow.setPosition(item.displayed);
                     drawTrail(item);
                     if (item.previousFrame.lat !== item.displayed.lat || item.previousFrame.lng !== item.displayed.lng) item.symbol.style.setProperty('--heading',bearing(item.previousFrame,item.displayed)+'deg'); item.previousFrame = item.displayed;
-                    if (follow.checked && !element('tracking-show-all').checked && selectedId === vehicle.id) centerPosition(item.displayed);
+                    if (!tripHistory.active && follow.checked && !element('tracking-show-all').checked && selectedId === vehicle.id) centerPosition(item.displayed);
                     item.animation = progress < 1 && active() ? requestAnimationFrame(frame) : null;
                 };
                 item.animation = requestAnimationFrame(frame);
-            } else { item.displayed = vehicle.position; item.marker.position = vehicle.position; item.animation = null; if (popupVehicleId === vehicle.id) infoWindow.setPosition(item.displayed); if (follow.checked && !element('tracking-show-all').checked && selectedId === vehicle.id) centerPosition(item.displayed); }
+            } else { item.displayed = vehicle.position; item.marker.position = vehicle.position; item.animation = null; if (popupVehicleId === vehicle.id) infoWindow.setPosition(item.displayed); if (!tripHistory.active && follow.checked && !element('tracking-show-all').checked && selectedId === vehicle.id) centerPosition(item.displayed); }
         }
         item.vehicle = vehicle;
         if (!item.animation && vehicle.state === 'moving' && route.length > 1) item.symbol.style.setProperty('--heading',bearing(route.at(-2),route.at(-1))+'deg');
@@ -199,14 +207,15 @@
     }
     function render(animate = false) {
         const matches = filtered(), ids = new Set(matches.map(vehicle => vehicle.id));
-        element('tracking-results').hidden = !element('tracking-search').value.trim();
+        document.querySelectorAll('[data-tracking-status]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.trackingStatus === stateFilter.value)));
+        element('tracking-results').hidden = !element('tracking-show-all').checked && !element('tracking-search').value.trim() && !['online','offline'].includes(stateFilter.value);
         if (selectedId !== null && !ids.has(selectedId)) { selectedId = null; void closeVideo(); }
         const automaticFocus = selectedId === null && follow.checked && !element('tracking-show-all').checked
             ? preferredTrackingVehicle(matches) : null;
         if (automaticFocus) selectedId = automaticFocus.id;
         const visible = displayed();
         for (const [id,row] of rows) if (!ids.has(id)) { row.button.remove(); rows.delete(id); }
-        matches.slice(0,50).forEach((vehicle,index) => { const button = rowFor(vehicle); if (list.children[index] !== button) list.insertBefore(button,list.children[index] || null); });
+        matches.forEach((vehicle,index) => { const button = rowFor(vehicle); if (list.children[index] !== button) list.insertBefore(button,list.children[index] || null); });
         element('tracking-result-count').textContent = matches.length;
         element('tracking-empty').hidden = matches.length > 0;
         element('tracking-empty').textContent = vehicles.length ? labels.empty : labels.no_vehicles;
@@ -237,11 +246,12 @@
         map.setCenter(projection.fromPointToLatLng(new google.maps.Point(center.x,center.y)));
     }
     function recenterSelection() {
-        if (!follow.checked || element('tracking-show-all').checked) return;
+        if (tripHistory.active || !follow.checked || element('tracking-show-all').checked) return;
         const selected = vehicles.find(vehicle => vehicle.id === selectedId);
         centerPosition(markers.get(selectedId)?.displayed || selected?.position);
     }
     function fitFleet() {
+        if (tripHistory.active) return;
         if (!map) return;
         const displayedVehicles = displayed().filter(vehicle => vehicle.position);
         const focused = !element('tracking-show-all').checked ? preferredTrackingVehicle(displayedVehicles, selectedId) : null;
@@ -266,7 +276,7 @@
         });
         const [{Map:GoogleMap},{AdvancedMarkerElement}] = await Promise.all([google.maps.importLibrary('maps'),google.maps.importLibrary('marker')]);
         Marker = AdvancedMarkerElement;
-        map = new GoogleMap(canvas,{center:config.center,zoom:12,minZoom:3,maxZoom:20,mapId:config.mapId,renderingType:google.maps.RenderingType.RASTER,disableDefaultUI:true,cameraControl:false,streetViewControl:false,mapTypeControl:false,fullscreenControl:false,zoomControl:false,rotateControl:false,scaleControl:document.body.dataset.view === 'map',clickableIcons:false,gestureHandling:document.body.dataset.view === 'map' ? 'cooperative' : 'none',keyboardShortcuts:document.body.dataset.view === 'map',disableDoubleClickZoom:document.body.dataset.view !== 'map'});
+        map = new GoogleMap(canvas,{center:config.center,zoom:12,minZoom:3,maxZoom:20,mapId:config.mapId,mapTypeId:config.mapType || 'roadmap',renderingType:google.maps.RenderingType.RASTER,disableDefaultUI:true,cameraControl:false,streetViewControl:false,mapTypeControl:false,fullscreenControl:false,zoomControl:false,rotateControl:false,scaleControl:document.body.dataset.view === 'map',clickableIcons:false,gestureHandling:document.body.dataset.view === 'map' ? 'cooperative' : 'none',keyboardShortcuts:document.body.dataset.view === 'map',disableDoubleClickZoom:document.body.dataset.view !== 'map'});
         map.addListener('projection_changed',() => { measureViewport(); recenterSelection(); });
         map.addListener('zoom_changed',() => { markers.forEach(item => item.trail.redraw()); if (!popupVehicleId) recenterSelection(); });
         map.addListener('dragstart',() => { follow.checked = false; });
@@ -303,7 +313,22 @@
             if (controller === currentController) { controller = null; element('tracking-refresh').disabled = false; schedule(); }
         }
     }
+    document.addEventListener('exadcam:report-map-load',()=>{
+        if(config.apiKey&&!loading) loading=createMap().catch(mapFailed);
+    });
+    let appliedDashboardHash = null;
+    function syncDashboardFilter() {
+        const status = dashboardConnection(location.hash);
+        if (!status) { appliedDashboardHash = null; return; }
+        if (appliedDashboardHash === location.hash) return;
+        appliedDashboardHash = location.hash;
+        applyDashboardConnection(document,status);
+        selectedId = null; initialFit = false; fitOnOpen = true;
+        tripHistory.close(); infoWindow?.close(); popupVehicleId = null; void closeVideo();
+        updateFilters(); render(); fitFleet();
+    }
     function syncView() {
+        syncDashboardFilter();
         clearTimeout(timer);
         if (!active()) { requestSequence++; controller?.abort(); controller = null; stopAnimations(); return; }
         if (config.apiKey && !loading) loading = createMap().catch(mapFailed);
@@ -331,16 +356,26 @@
     element('tracking-refresh').addEventListener('click',refresh);
     element('tracking-fit').addEventListener('click',() => { if (!element('tracking-show-all').checked) follow.checked = true; render(); fitFleet(); });
     element('tracking-show-all').addEventListener('change',() => { if (!element('tracking-show-all').checked) selectedId = null; infoWindow?.close(); popupVehicleId = null; render(); fitFleet(); });
-    fleetFilter.addEventListener('change',() => { updateFilters(); render(); fitFleet(); });
+    fleetFilter?.addEventListener('change',() => { updateFilters(); render(); fitFleet(); });
     departmentFilter.addEventListener('change',() => { render(); fitFleet(); });
     stateFilter.addEventListener('change',() => { render(); fitFleet(); });
+    document.querySelectorAll('[data-tracking-status]').forEach(button => button.addEventListener('click',() => {
+        stateFilter.value = button.dataset.trackingStatus;
+        element('tracking-show-all').checked = true;
+        follow.checked = false;
+        selectedId = null;
+        tripHistory.close();
+        if (document.body.dataset.view === 'map') history.replaceState(null,'',stateFilter.value ? '#map?connection='+stateFilter.value : '#map');
+        stateFilter.dispatchEvent(new Event('change'));
+    }));
     element('tracking-search').addEventListener('input',() => { clearTimeout(searchTimer); searchTimer = setTimeout(() => render(),150); });
     auto.addEventListener('change',() => { element('tracking-sync-label').textContent = auto.checked ? labels.last_update : labels.paused; if (auto.checked) void refresh(); else { clearTimeout(timer); stopAnimations(); } });
     showTrails.addEventListener('change',() => render());
     follow.addEventListener('change',() => { if (follow.checked) { render(); fitFleet(); } });
     element('tracking-zoom-in').addEventListener('click',() => { if (map) map.setZoom(Math.min(20,map.getZoom()+1)); });
     element('tracking-zoom-out').addEventListener('click',() => { if (map) map.setZoom(Math.max(3,map.getZoom()-1)); });
-    element('tracking-map-type').addEventListener('click',event => { if (!map) return; const satellite = map.getMapTypeId() !== 'hybrid'; map.setMapTypeId(satellite ? 'hybrid' : 'roadmap'); event.currentTarget.setAttribute('aria-pressed',String(satellite)); });
+    element('tracking-map-type').setAttribute('aria-pressed',String(['hybrid','satellite'].includes(config.mapType)));
+    element('tracking-map-type').addEventListener('click',event => { if (!map) return; const satellite = !['hybrid','satellite'].includes(map.getMapTypeId()); const satelliteType = ['hybrid','satellite'].includes(config.mapType) ? config.mapType : 'hybrid'; const planType = ['roadmap','terrain'].includes(config.mapType) ? config.mapType : 'roadmap'; map.setMapTypeId(satellite ? satelliteType : planType); event.currentTarget.setAttribute('aria-pressed',String(satellite)); });
     element('tracking-fullscreen').addEventListener('click',async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await workspace.requestFullscreen(); } catch { feedMessage.hidden = false; feedMessage.textContent = labels.fullscreen_failed; } });
     document.addEventListener('fullscreenchange',resizeMap);
     window.addEventListener('resize',resizeMap);

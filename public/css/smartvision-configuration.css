@@ -1,0 +1,46 @@
+.sv-modal .modal-dialog { max-width: 940px; }
+.sv-modal .modal-content { border: 1px solid #dce6f3; border-radius: 16px; overflow: hidden; }
+.sv-modal .modal-header { padding: 20px 24px; align-items: flex-start; }
+.sv-modal .modal-title { font-size: 20px; color: #203d65; }
+.sv-eyebrow { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #7690ae; margin: 0 0 5px; }
+.sv-camera { color: #68819e; font-size: 12px; margin: 5px 0 0; overflow-wrap: anywhere; }
+.sv-modal form { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.sv-modal .modal-body { padding: 20px 24px; }
+.sv-modal .modal-footer { padding: 14px 24px; gap: 6px; border-color: #e5edf6; }
+.sv-modal .btn { min-height: 34px; padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+.sv-modal .btn .icon { width: 15px; height: 15px; margin-right: 5px; }
+.sv-modal .form-control, .sv-modal .form-select { min-height: 38px; height: 38px; font-size: 12px; border-radius: 8px; border-color: #dce6f3; padding: 7px 11px; }
+.sv-modal .form-select { padding-right: 30px; }
+.sv-modal .form-label { font-size: 12px; color: #365575; margin-bottom: 6px; }
+.sv-modal .form-control:disabled { background: #f3f6fa; }
+.sv-modal .form-control::placeholder { font-size: 11px; color: #8195ac; }
+.sv-notice { background: #f5f8fc; border: 1px solid #dce6f3; border-left: 3px solid #7a9ec6; border-radius: 8px; padding: 12px 14px; color: #416180; }
+.sv-notice strong { font-size: 12px; }
+.sv-notice p, .sv-help { font-size: 11px; line-height: 1.6; color: #7188a3; margin: 7px 0 0; }
+.sv-modal .alert { font-size: 12px; padding: 10px 12px; margin: 12px 0; }
+.sv-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0; font-size: 11px; color: #7188a3; flex-wrap: wrap; }
+.sv-section { margin-top: 20px; }
+.sv-section h3 { font-size: 14px; color: #203d65; margin: 0; font-weight: 600; }
+.sv-section-heading, .sv-server-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.sv-servers, .sv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+.sv-server { padding: 14px; border: 1px solid #e1e9f3; border-radius: 10px; min-width: 0; }
+.sv-server h4 { font-size: 12px; color: #365575; font-weight: 600; margin: 0; }
+.sv-server-heading { min-height: 34px; }
+.sv-server-heading .form-select { width: auto; max-width: 100%; min-height: 32px; height: 32px; font-size: 11px; }
+.sv-server-fields { display: grid; grid-template-columns: minmax(0, 1fr) 100px; gap: 10px; margin-top: 12px; }
+.sv-grid > div, .sv-server-fields > div { min-width: 0; }
+.sv-modal .invalid-feedback { font-size: 11px; }
+#sv-dirty { margin-right: auto; color: #956c29; }
+@media (max-width: 767px) {
+    .sv-servers { grid-template-columns: minmax(0, 1fr); }
+    .sv-modal .modal-body, .sv-modal .modal-header { padding: 16px; }
+    .sv-modal .modal-footer { padding: 12px; }
+}
+@media (max-width: 479px) {
+    .sv-grid { grid-template-columns: minmax(0, 1fr); }
+    .sv-modal .modal-title { font-size: 18px; }
+    .sv-server-fields { grid-template-columns: minmax(0, 1fr) 85px; }
+    .sv-server-heading { align-items: flex-start; }
+    .sv-modal .modal-footer .btn { flex: 1 1 auto; }
+    #sv-dirty { flex-basis: 100%; }
+}

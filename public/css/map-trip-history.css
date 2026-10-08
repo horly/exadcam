@@ -1,0 +1,53 @@
+.cam-trip-panel { --history-primary: var(--brand-primary, #203d65); --history-button: var(--brand-button, #203d65); --history-border: #d7e3f1; --history-muted: #6c819b; --history-soft: #f5f8fc; position: absolute; z-index: 12; left: 20px; top: 20px; width: 420px; max-width: calc(100% - 40px); max-height: calc(100% - 40px); display: flex; flex-direction: column; background: #fff; color: #203d65; border: 1px solid var(--history-border); border-radius: 18px; box-shadow: 0 14px 45px #172f4d26; font-family: inherit; font-size: 13px; overflow: hidden; }
+.cam-trip-panel[hidden], .cam-trip-panel [hidden] { display: none !important; }
+.cam-trip-panel header { display: flex; align-items: center; gap: 9px; padding: 16px; border-bottom: 1px solid var(--history-border); background: linear-gradient(140deg,#fff 25%,#f4fbfb); }
+.cam-trip-panel header strong { flex: 1; min-width: 0; font-size: 15px; font-weight: 750; color: var(--history-primary); line-height: 1.5; }
+.cam-trip-panel header > .icon { flex: 0 0 36px; width: 36px; height: 36px; padding: 8px; background: #e9effa; color: var(--history-primary); border-radius: 12px; }
+.cam-trip-panel button { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--history-border); background: #fff; color: var(--history-primary); border-radius: 11px; padding: 8px 10px; font: inherit; cursor: pointer; transition: background .15s; }
+.cam-trip-panel button:hover:not(:disabled) { background: #edf3fa; }
+.cam-trip-panel button:focus-visible, .cam-trip-panel input:focus-visible { outline: 2px solid var(--brand-accent,#91b9e8); outline-offset: 2px; }
+.cam-trip-panel button:disabled { opacity: .4; cursor: default; }
+.cam-trip-panel header button { width: 32px; height: 32px; padding: 7px; flex-shrink: 0; }
+.cam-trip-panel button .icon { width: 18px; height: 18px; }
+.cam-trip-body { min-height: 0; display: flex; flex-direction: column; }
+.cam-trip-dates { display: flex; align-items: flex-end; gap: 10px; padding: 14px 14px 10px; }
+.cam-trip-dates label { min-width: 0; flex: 1; font-size: 11px; font-weight: 700; color: var(--history-muted); }
+.cam-trip-dates input { display: block; box-sizing: border-box; margin-top: 5px; width: 100%; min-width: 0; height: 39px; padding: 6px 8px; border: 1px solid var(--history-border); border-radius: 11px; background: #fff; color: #294767; font: inherit; font-size: 12px; }
+.cam-trip-dates button { min-height: 39px; padding: 8px 13px; border-color: var(--history-button); background: var(--history-button); color: var(--brand-button-text,#fff); font-weight: 650; }
+.cam-trip-dates button:hover:not(:disabled) { background: color-mix(in srgb,var(--history-button) 88%,#000); }
+.cam-trip-presets { display: flex; gap: 8px; padding: 0 14px 12px; font-size: 12px; }
+.cam-trip-presets button { padding: 7px 11px; background: var(--history-soft); }
+.cam-trip-tools { display: flex; align-items: center; gap: 7px; padding: 9px; margin: 0 14px 7px; border: 1px solid var(--history-border); border-radius: 13px; background: var(--history-soft); }
+.cam-trip-tools button { height: 34px; width: 34px; flex: 0 0 34px; padding: 7px; font-size: 18px; }
+.cam-trip-tools button:first-child { background: var(--history-button); color: var(--brand-button-text,#fff); border-color: var(--history-button); }
+.cam-trip-tools input { margin-left: auto; accent-color: var(--history-button); width: 16px; height: 16px; }
+.cam-trip-tools span { font-size: 11px; font-weight: 650; }
+.cam-trip-body > input[type=range] { margin: 4px 18px 10px; width: calc(100% - 36px); accent-color: var(--history-button); }
+.cam-trip-message { margin: 4px 16px; color: var(--history-muted); }
+.cam-trip-message:empty { display: none; }
+.cam-trip-content { overflow: auto; min-height: 0; padding: 0 12px 12px; overscroll-behavior: contain; scrollbar-width: thin; }
+.cam-trip-overview { display: block !important; width: 100%; text-align: left; padding: 16px !important; border-radius: 14px !important; }
+.cam-trip-overview > p { margin: 12px 0 12px 86px; font-size: 13px; font-weight: 650; }
+.cam-trip-overview strong { display: block; margin-bottom: 18px; font-size: 14px; }
+.cam-trip-day { margin: 8px 0; text-align: center; padding: 9px; border-radius: 11px; background: var(--history-soft); color: var(--history-muted); font-size: 12px; font-weight: 650; }
+.cam-trip-row { position: relative; display: flex; align-items: center; gap: 8px; margin: 10px 0; padding: 12px 8px 12px 43px; border: 1px solid var(--history-border); border-left: 3px solid var(--trip-color); border-radius: 13px; background: #fff; }
+.cam-trip-row.is-selected { background: #f3f7fc; border-color: #a7c2e3; border-left-color: var(--trip-color); }
+.cam-trip-symbol { position: absolute; left: 8px; top: 20px; width: 28px; height: 30px; display: grid; place-items: center; background: color-mix(in srgb,var(--trip-color) 12%,white); color: var(--trip-color); border-radius: 9px; font-size: 19px; font-weight: 750; }
+.cam-trip-row > button { display: block; flex: 1; min-width: 0; text-align: left; border: 0; border-radius: 8px; background: transparent; padding: 4px; }
+.cam-trip-row > input { accent-color: var(--history-button); }
+.cam-trip-row p { margin: 9px 0; }
+.cam-trip-row small { font-size: 12px; color: var(--history-muted); }
+.cam-trip-endpoint { display: grid; grid-template-columns: 62px 10px 1fr; gap: 7px; align-items: start; line-height: 1.55; }
+.cam-trip-endpoint small { display: block; font-size: 10px; color: var(--history-muted); }
+.cam-trip-endpoint i { margin-top: 6px; width: 10px; height: 10px; border: 2px solid #91abc9; border-radius: 50%; }
+.cam-trip-endpoint > span:last-child { font-size: 12px; color: #627a95; overflow-wrap: anywhere; }
+.cam-trip-pin { display: grid; place-items: center; width: 40px; height: 40px; background: white; border: 2px solid var(--trip-color); color: var(--trip-color); border-radius: 8px; box-shadow: 0 2px 4px #0004; font-size: 28px; font-weight: bold; }
+.cam-trip-pin:after { content: ''; position: absolute; bottom: -7px; width: 11px; height: 11px; transform: rotate(45deg); background: white; border-right: 2px solid var(--trip-color); border-bottom: 2px solid var(--trip-color); }
+.tracking-panel.history-covered { visibility: hidden; pointer-events: none; }
+@media(max-width:700px) { .cam-trip-panel { top: 18%; bottom: auto; left: 12px; width: calc(100% - 24px); max-width: none; max-height: calc(82% - 12px); } .cam-trip-panel header { padding: 12px; } .cam-trip-panel header strong { font-size: 13px; } .cam-trip-tools { gap: 5px; margin-left: 12px; margin-right: 12px; } .cam-trip-tools button { width: 31px; flex-basis: 31px; } .cam-trip-dates { gap: 6px; padding-left: 12px; padding-right: 12px; } }
+
+.cam-trip-tools select { height: 34px; min-width: 58px; padding: 4px; border: 1px solid var(--history-border); border-radius: 10px; background: #fff; color: var(--history-primary); font: inherit; font-weight: 650; }
+.cam-trip-tools select:disabled { opacity: .4; }
+.cam-trip-tools select:focus-visible { outline: 2px solid var(--brand-accent,#91b9e8); outline-offset: 2px; }
+.cam-trip-tools .cam-trip-all-label { font-size: 10px; line-height: 1.3; }
+@media(max-width:700px) { .cam-trip-panel { top: 30%; max-height: calc(70% - 12px); } .cam-trip-tools .cam-trip-all-label { display: none; } }

@@ -4,12 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>@yield('title', __('Connexion')) · EXADCAM</title>
+    <title>@yield('title', __('Connexion')) · {{ $branding['settings']['app_name'] }}</title>
     @include('partials.favicons')
     @include('partials.fonts')
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/auth-login.css') }}?v=manrope-1">
     <link rel="stylesheet" href="{{ asset('css/auth-panel.css') }}?v=dynamic-login-1">
+    @include('partials.branding-theme')
 </head>
 <body class="auth-body">
     <a class="visually-hidden-focusable auth-skip" href="#auth-content">{{ __('Aller au formulaire') }}</a>
@@ -20,7 +21,7 @@
             </div>
             <div class="story-shade" aria-hidden="true"></div>
             <div class="story-header">
-                <div class="auth-brand company-brand"><x-company-logo tone="light" class="hero-company-logo" /><div class="brand-product"><strong>EXADCAM</strong><span>{{ __('DASHCAMS CONNECTÉES') }}</span></div></div>
+                <div class="auth-brand company-brand"><img class="company-logo hero-company-logo" src="{{ $branding['internal_logo'] }}" alt="{{ $branding['settings']['app_name'] }}" width="931" height="441"><div class="brand-product"><strong>{{ $branding['settings']['short_name'] }}</strong><span>{{ __('DASHCAMS CONNECTÉES') }}</span></div></div>
             </div>
             <div class="story-bottom">
                 <div class="story-content">
@@ -41,7 +42,7 @@
                 <x-language-switcher />
             </header>
             <div class="auth-form-container">@yield('content')</div>
-            <footer class="auth-footer"><span>© {{ now()->year }} EXADCAM</span><span>{{ __('Tous droits réservés.') }}</span></footer>
+            <footer class="auth-footer"><span>© {{ now()->year }} {{ $branding['settings']['short_name'] }}</span><span>{{ __('Tous droits réservés.') }}</span></footer>
         </main>
     </div>
     @stack('modals')

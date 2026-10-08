@@ -1,0 +1,32 @@
+[Unit]
+Description=EXADCAM memory-card recording transfers
+After=network-online.target exadcam-gps.service
+Wants=network-online.target exadcam-gps.service
+
+[Service]
+Type=simple
+User=exad-listener
+Group=www-data
+SupplementaryGroups=exad-listener
+WorkingDirectory=/opt/exadcam-listener
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/exadcam/listener.env
+ExecStart=/usr/local/bin/node src/recordings.js
+Restart=always
+RestartSec=3
+TimeoutStopSec=15
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+ReadWritePaths=/var/lib/exadcam-recordings
+LimitNOFILE=1024
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

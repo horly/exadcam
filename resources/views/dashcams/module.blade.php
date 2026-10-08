@@ -64,7 +64,7 @@
 @push('styles')<link rel="stylesheet" href="{{ asset('css/searchable-select.css') }}?v=dashboard-real-1"><link rel="stylesheet" href="{{ asset('css/dashcams.css') }}?v=models-20260928">@endpush
 @push('scripts')
     <script id="dashcam-config" type="application/json">{!! \Illuminate\Support\Js::encode(['isPlatform' => auth()->user()->isSuperadmin(), 'fleetId' => auth()->user()->fleet_id, 'url' => route('dashcams.index'), 'optionsUrl' => route('dashcams.options'), 'registryUrl' => url('/registry'), 'strings' => trans('dashcams')]) !!}</script>
-    <script src="{{ asset('js/searchable-select.js') }}?v=dashboard-real-1" defer></script>
+    <script src="{{ asset('js/searchable-select.js') }}?v=map-overlay-20261007" defer></script>
     <script src="{{ asset('vendor/hls/hls.min.js') }}" defer></script>
     <script src="{{ asset('js/dashcams.js') }}?v=models-20260928" defer></script>
 @endpush

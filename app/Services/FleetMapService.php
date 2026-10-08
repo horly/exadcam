@@ -75,6 +75,7 @@ class FleetMapService
                 'source_id' => $camera?->id, 'camera_name' => $user->isSuperadmin() ? $camera?->name : null,
                 'equipment' => $camera && FleetAccess::dashcams($user) ? ['id' => $camera->id, 'channels' => $camera->channels, 'video_fit' => $camera->videoFit(), ...($user->isSuperadmin() ? ['name' => $camera->name, 'imei' => $camera->imei, 'model' => $camera->model] : [])] : null,
                 'details_url' => url('/map/vehicles/'.$vehicle->id.'/details'),
+                'trips_url' => url('/map/vehicles/'.$vehicle->id.'/trips'),
                 'online' => $online, 'state' => $state, 'last_seen_at' => $camera?->last_seen_at?->toIso8601String(),
                 'position' => $fix ? [...$this->point($fix), 'speed' => (float) $fix->speed, 'ignition' => (bool) ($fix->status & 1)] : null,
                 'trail' => $state === 'moving' ? $this->continuousTrail($positions->all()) : [],

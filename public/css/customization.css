@@ -1,0 +1,62 @@
+.customization-module { min-width: 0; color: var(--brand-primary); }
+.customization-module [hidden] { display: none !important; }
+.customization-intro { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 20px; }
+.customization-intro > strong { font-size: 13px; }
+.customization-scope { display: inline-flex; align-items: center; gap: 8px; background: #edf3fb; color: var(--brand-primary); padding: 7px 11px; border: 1px solid #dce6f2; border-radius: 7px; font-size: 10px; font-weight: 600; }
+.customization-scope .icon { width: 14px; height: 14px; }
+.customization-card { margin-bottom: 20px; padding: 24px; border: 1px solid #dce6f2; border-radius: 12px; background: #fff; min-width: 0; }
+.customization-card > header { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 13px; margin-bottom: 24px; }
+.customization-card > header > div { flex: 1; min-width: min(240px,100%); }
+.customization-card h2 { font-size: 14px; font-weight: 650; margin: 0 0 6px; line-height: 1.5; }
+.customization-card header p { color: #8195ae; font-size: 11px; margin: 0; line-height: 1.7; }
+.customization-section-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; background: #edf3fb; color: var(--brand-primary); flex-shrink: 0; }
+.customization-section-icon .icon { width: 17px; height: 17px; }
+.customization-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px 24px; }
+.customization-field { min-width: 0; }
+.customization-field > label,.customization-asset-label { display: block; color: var(--brand-primary); margin-bottom: 8px; font-size: 12px; font-weight: 500; }
+.customization-field .form-control,.customization-field .form-select,.customization-asset-controls .form-control { min-height: 38px; padding: 8px 11px; border: 1px solid #dce6f2; border-radius: 8px; background-color: #fbfcfe; color: var(--brand-primary); font-size: 12px; box-shadow: none; }
+.customization-field .form-select { padding-right: 32px; }
+.customization-field .form-control:focus,.customization-field .form-select:focus,.customization-asset-controls .form-control:focus { border-color: var(--brand-accent); box-shadow: 0 0 0 3px color-mix(in srgb,var(--brand-accent) 12%,transparent); }
+.customization-static { min-height: 38px; display: flex; align-items: center; margin: 0; font-size: 12px; }
+.customization-assets { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; }
+.customization-asset { border: 1px solid #dfe7f2; border-radius: 10px; padding: 18px; min-width: 0; }
+.customization-image { height: 100px; background: #f5f8fc; border: 1px solid #e4ecf6; border-radius: 8px; padding: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+.customization-image.is-dark { background: linear-gradient(175deg,var(--brand-sidebar-start),var(--brand-sidebar-end)); }
+.customization-image img { max-width: 100%; max-height: 72px; width: auto; height: auto; object-fit: contain; }
+.customization-asset-controls small { display: block; margin-top: 8px; font-size: 10px; color: #8195ae; line-height: 1.7; }
+.customization-asset-controls input[type=file] { width: 100%; min-width: 0; padding: 7px; font-size: 10px; }
+.customization-asset-controls input[type=file]::file-selector-button { margin: -7px 9px -7px -7px; padding: 10px; border: 0; border-right: 1px solid #dce6f2; background: #edf3fb; color: var(--brand-primary); font-size: 11px; cursor: pointer; }
+.customization-reset-image { display: flex; gap: 8px; align-items: flex-start; font-size: 10px; color: #738aa5; margin: 12px 0 0; line-height: 1.5; }
+.customization-reset-image input { flex-shrink: 0; margin-top: 1px; accent-color: var(--brand-button); }
+.customization-assets-fleet { grid-template-columns: minmax(0,580px); }
+.customization-assets-fleet .customization-asset { display: grid; grid-template-columns: 120px minmax(0,1fr); gap: 20px; align-items: center; }
+.customization-assets-fleet .customization-image { margin: 0; }
+.customization-preview-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 16px; margin: 22px 0 10px; font-size: 11px; }
+.customization-preview-heading small { color: #8195ae; font-size: 10px; }
+.customization-sidebar-preview { display: flex; gap: 16px; align-items: center; background: linear-gradient(175deg,var(--brand-sidebar-start),var(--brand-sidebar-end)); color: var(--brand-sidebar-text); border-radius: 10px; padding: 22px; width: min(100%,420px); min-height: 94px; }
+.customization-sidebar-preview > img { width: 84px; height: 48px; object-fit: contain; flex-shrink: 0; }
+.customization-sidebar-preview > div { min-width: 0; padding-left: 16px; border-left: 1px solid currentColor; }
+.customization-sidebar-preview strong { font-size: 17px; line-height: 1.3; overflow-wrap: anywhere; }
+.customization-sidebar-preview small { display: block; margin-top: 6px; font-size: 9px; letter-spacing: .13em; opacity: .75; }
+.customization-colors { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 20px; }
+.customization-color { display: flex; align-items: center; padding: 5px; gap: 6px; border: 1px solid #dce6f2; border-radius: 8px; background: #fff; }
+.customization-color input[type=color] { border: 0; padding: 0; background: none; min-width: 0; width: 100%; height: 32px; cursor: pointer; }
+.customization-color input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.customization-color input[type=color]::-webkit-color-swatch { border: 0; border-radius: 4px; }
+.customization-color input[type=text] { min-width: 72px; width: 72px; border: 0; color: #738aa5; background: transparent; font-size: 10px; font-family: ui-monospace,monospace; text-align: center; }
+.customization-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; padding: 2px 0 12px; }
+.customization-restore { margin-inline-end: auto; }
+.customization-restore-notice { padding: 12px 15px; margin: 0 0 14px; border: 1px solid #dce6f2; border-radius: 9px; background: #edf3fb; color: var(--brand-primary); font-size: 12px; line-height: 1.6; }
+.customization-button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 38px; border: 1px solid #dce6f2; border-radius: 8px; background: #fff; color: var(--brand-primary); padding: 8px 14px; font: inherit; font-size: 12px; font-weight: 600; }
+.customization-button .icon { width: 16px; height: 16px; }
+.customization-button:hover { background: #f5f8fc; }
+.customization-button.is-primary { background: var(--brand-button); border-color: var(--brand-button); color: var(--brand-button-text); }
+.customization-button:disabled { opacity: .5; cursor: wait; }
+.customization-button:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 3px; }
+.customization-field-error { font-size: 11px; color: #bd4b58; margin: 7px 0 0; }
+.customization-error,.customization-success { padding: 12px 15px; font-size: 12px; border-radius: 9px; margin-bottom: 18px; line-height: 1.6; }
+.customization-error { color: #a44751; background: #fff0f1; border: 1px solid #f4d3d8; }
+.customization-success { color: #237b60; background: #eaf7f0; border: 1px solid #cce9dc; }
+@media(max-width:1199.98px) { .customization-assets { gap: 12px; } .customization-asset { padding: 13px; } .customization-colors { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+@media(max-width:767.98px) { .customization-card { padding: 18px; } .customization-assets,.customization-fields { grid-template-columns: minmax(0,1fr); } .customization-asset { display: grid; grid-template-columns: 110px minmax(0,1fr); gap: 16px; align-items: center; } .customization-image { margin: 0; } .customization-colors { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; } .customization-button { min-height: 40px; } }
+@media(max-width:399.98px) { .customization-asset,.customization-assets-fleet .customization-asset { grid-template-columns: minmax(0,1fr); } .customization-actions { flex-direction: column-reverse; } .customization-restore { margin-inline-end: 0; } .customization-color { flex-direction: column; } .customization-color input[type=text] { width: 100%; } }

@@ -1,0 +1,15 @@
+[Unit]
+Description=Remove expired EXADCAM reports
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/exadcam
+ExecStart=/usr/bin/php artisan reports:prune
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/exadcam/storage /var/www/exadcam/bootstrap/cache

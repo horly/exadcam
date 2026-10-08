@@ -3616,3 +3616,478 @@ Migration 2026_09_28_090000_correct_dashcam_model_names.php : mise à jour cibl�
 Validation réellement exécutée sur le code final : 65 tests ciblés réussis, 566 assertions, sur SQLite en mémoire isolée. Sont couverts le renommage/idempotence/retour arrière, la conservation de toutes les colonnes hors nom/modèle, les profils internes, les filtres, la carte, les détails, le tableau de bord et les permissions des comptes flotte. Suites : DashcamModelNamesTest, DashcamRegistryTest, ListenerAccessTest, FleetAdministrationTest, DashboardVideoTest et RealDashboardTest. Contrôle syntaxique JavaScript et syntaxe PHP des fichiers du lot réussi. Il ne s’agit pas d’une suite complète ni d’un nouvel essai physique du haut-parleur.
 
 Déploiement du 28 septembre réussi : 15 fichiers vérifiés/installés et migration ciblée appliquée. Quatre fiches vérifiées par comparaison des empreintes de leurs paramètres de communication et d’affectation : inchangés. Réponse HTTP réelle du résolveur interne : profils préservés pour les quatre équipements. Véhicule 2 et Hilux SmartVision connectés après migration. Les trois processus GPS/vidéo/audio sont conservés, sans redémarrage. Connexion web et ressource JS répondent HTTP 200. Seules les vues compilées ont été purgées ; aucun vidage du cache des baux vidéo. Recharger la page permet aux onglets déjà ouverts de récupérer les nouveaux formulaires et ressources.
+
+
+## 28 septembre 2026 — Consultation et téléchargement des cartes mémoire
+
+Demande : accéder depuis EXADCAM aux enregistrements locaux des deux modèles et les télécharger. Nouveau menu Enregistrements : sélection recherchable avec statut, date/canal, dix lignes par page, choix d’un extrait, progression, lecture et téléchargement MP4. Les commandes interrogent réellement la carte SD ; aucune liste de démonstration.
+
+GPS : 0x9205/0x1205 et 0x9201/0x9202, réassemblage borné des listes longues. Les deux firmwares réels incrémentent leur numéro JT808 entre fragments ; cette variante et le numéro constant sont testés. Récepteur distinct exadcam-recordings sur 1081/TCP, API privée 3004, H.264 et G.711/AAC vers MP4, nettoyage à 6 h. Les clients sont limités à leur flotte et aux fichiers commençant après les affectations actuelles. Droits et affectations sont revérifiés sur la recherche, le transfert, la lecture HTTP Range et le téléchargement. Les fichiers qui chevauchent une affectation sont exclus entièrement pour empêcher une recherche firmware antérieure à la borne.
+
+Validation du lot : 32 tests PHP ciblés / 290 assertions sur SQLite en mémoire, 14 tests Node ciblés GPS/protocole, 2 tests Linux du récepteur avec FFmpeg. Format PHP et diff vérifiés. Essais réels réussis sur Véhicule 2 SmartVision et Suzuki Horly ESTON : cartes listées, deux canaux identifiés, MP4 de 15 secondes avec vidéo/audio. Navigateur réel : extrait du canal 2 ESTON préparé, lu jusqu’à 15,1 s et téléchargement déclenché ; largeur mobile/tablette contrôlée sans débordement de page. Ce ne sont ni une suite complète ni un test de charge. Détails et limites : docs/recordings.md.
+
+Déploiement : services et sources sauvegardés, nouveau service activé, deux rechargements GPS nécessaires au cours du lot (première activation puis compatibilité des longues listes à 08:53 UTC). Le contrôle de 64 heures du début de journée reste historique. Services de direct vidéo/audio non redémarrés ; aucun changement de configuration des caméras ou de leurs Backup. Véhicule 2 et Suzuki Horly reconnectés après activation. Hilux ESTON hors ligne et Hilux SmartVision sans session au contrôle de 08:59 UTC ; ce dernier conserve son Backup, intervention reportée par l’utilisateur. Aucun succès de reconnexion du Hilux n’est revendiqué par ce lot. Fichiers et diagnostics détaillés de production restent sur le serveur.
+
+Complément final : enregistrement du canal 2 SmartVision récupéré depuis la deuxième page de résultats, intervalle annoncé de 121 s, MP4 H.264/AAC de 120,032 s et 12,4 Mio. Lecture navigateur avancée au-delà de 40 s puis mise en pause ; le fichier reste consultable/téléchargeable. La nomenclature des durées conserve la distinction entre intervalle annoncé par la caméra et médias effectivement transmis. Documentation locale et serveur synchronisée avec sauvegarde des versions antérieures ; les diagnostics détaillés restent sur le serveur.
+
+
+## 28 septembre 2026 — Présentation corporate des Enregistrements
+
+Demande : réduire les champs et boutons trop grands et corriger le décalage du formulaire à l’ouverture de la recherche. Mise en page CSS en grille, sélecteur véhicule borné sur grand écran, contrôles de 38 px (40 px sur mobile), couleurs/bordures/typographie EXADCAM, tableau et pagination plus compacts. Liste de recherche positionnée en superposition ; le panneau laisse apparaître le menu sans le couper. Styles limités à Enregistrements, éléments hidden conservés, sans modification du sélecteur partagé ou de la logique de relecture.
+
+Fichiers : public/css/recordings.css, resources/views/recordings/module.blade.php (version CSS), docs/recordings.md et suivi projet. Validation de ce lot : 10 tests ciblés RecordingAccessTest / 66 assertions sur SQLite en mémoire ; git diff --check réussi. Vérification dans le navigateur de production en 1536×730, 820×1180 et 390×844 : aucun débordement horizontal de page ; Date, Canal et Rechercher conservent leurs coordonnées avant/après ouverture du menu ; filtrage Hilux et statuts visibles ; commandes masquées de téléchargement et annulation toujours masquées. Ce contrôle concerne la présentation ; les essais matériels du lot précédent restent historiques.
+
+Déploiement des deux fichiers de présentation après vérification des empreintes et sauvegarde sous /var/backups/exadcam-recordings-layout-20260928-112332. Seules les vues compilées sont purgées. Processus GPS, direct vidéo, audio et enregistrements inchangés avant/après ; aucun redémarrage ni modification de caméra. Documentation synchronisée séparément.
+
+
+## 28 septembre 2026 — Datatable des enregistrements
+
+Demande : présenter les enregistrements dans un datatable comme les autres listes. Les classes et contrôles communs Véhicules/Dashcams sont repris : champ de recherche, nombre de lignes 5/10/25/50 (10 par défaut), colonnes triables, numéros de ligne, compteur et pagination numérotée. Les règles responsive et le menu véhicule en superposition sont conservés. Traductions FR/EN ajoutées.
+
+RecordingController applique filtre, tri et pagination à la liste autorisée en cache, sans nouvelle commande caméra ; validation des paramètres et index original conservé pour la relecture après un changement d’ordre. Fichiers : contrôleur, vue recordings/module, recordings.mjs, recordings.css, deux traductions, RecordingAccessTest et documentation.
+
+Contrôles finaux : 13 tests ciblés / 114 assertions sur SQLite en mémoire (dont conservation de l’identité de la vidéo après tri/filtre, heures Kinshasa, tri numérique, tailles de page, bornes et paramètres invalides), Pint et syntaxes PHP/JS réussis ; git diff --check propre. Navigateur réel : 634 entrées de Véhicule 2, 10 puis 25 lignes, page 2, filtre Canal 2 = 317 résultats, tri de taille croissant, sélection de la période correspondante, résultat vide et retour à tous les résultats. Pas de transfert matériel supplémentaire dans ce lot. Largeurs 1536, 820 et 390 px vérifiées sans débordement horizontal de page ; menu véhicule toujours sans décalage.
+
+Sept fichiers déployés après comparaison des empreintes et sauvegarde /var/backups/exadcam-recordings-datatable-20260928-113615 ; seule la compilation des vues a été purgée, processus GPS/direct vidéo/audio/enregistrements conservés. Documentation synchronisée séparément. Aucun changement de configuration d’équipement.
+
+
+## 28 septembre 2026 — Cinq enregistrements par défaut
+
+Demande : afficher cinq enregistrements par défaut. Valeur initiale alignée dans la vue Blade, le contrôleur du tableau et le contrôleur Laravel ; choix 10/25/50 conservés. Version JavaScript incrémentée pour les onglets rechargés. Test existant des deux modèles adapté à cinq lignes et à la cinquième page. Documentation courante actualisée ; les validations historiques à dix lignes restent conservées.
+
+Validation de ce changement : 13 tests ciblés RecordingAccessTest / 114 assertions réussis sur SQLite en mémoire, syntaxe JavaScript et git diff --check réussis. Déployé avec sauvegarde /var/backups/exadcam-recordings-default-five-20260928-114735 et purge des seules vues compilées. Les processus des quatre listeners restent inchangés. Navigateur de production rechargé : cinq lignes sélectionnées par défaut, autres choix disponibles et nouvelle version JS chargée. Aucun nouvel essai matériel nécessaire pour ce réglage.
+
+
+## 28 septembre 2026 — Menu Logs serveur en lecture seule
+
+Demande : consulter les logs comme sur EXAD Tracking, sans console. Référence examinée en lecture seule ; menu EXADCAM réservé au superadmin actif, cinq sources GPS TCP/direct vidéo/audio/enregistrements/Laravel, 300 lignes par défaut (100/600/1000 disponibles), filtre Erreurs, recherche, Pause/Reprendre, Rafraîchir et suivi des dernières lignes. Présentation corporate responsive et traductions FR/EN.
+
+Nouvel endpoint GET protégé, liste fermée des sources et tailles, limitation 40 requêtes/minute, lectures de fichiers bornées, masquage des formats de secrets reconnus et rendu texte. Aucun endpoint de commande ni console. Lecteur système distinct : script Python root-owned, compte exad-log-reader sans shell, snapshots atomiques toutes les cinq secondes dans un répertoire privé lisible mais non modifiable par www-data. Les filtres portent sur la fenêtre des 1 000 dernières lignes disponibles. Détails et limites dans docs/server-logs.md.
+
+Fichiers : ServerLogController, ServerLogReader, config/server_logs, routes/web, sidebar/welcome et vue server-logs/module, CSS/JS dédiés, traductions, script et unités du collecteur, tests PHP/Python, documentation. Validation du lot : 20 tests PHP ciblés / 190 assertions sur SQLite en mémoire (ServerLogsTest et RecordingAccessTest), quatre tests Python sous Linux, syntaxes et format vérifiés. Navigateur de production : cinq sources disponibles, pause stable, rafraîchissement ponctuel, filtre Erreurs, recherche vide, tailles et reprise ; formats 1536/820/390 px sans débordement. Ce ne sont pas une suite exhaustive ou un test de charge.
+
+Seize fichiers applicatifs/d’exploitation déployés après sauvegarde /var/backups/exadcam-server-logs-20260928-122003 ; timer et service collecteur activés, permissions de lecture seule vérifiées. Les quatre processus GPS/vidéo/audio/enregistrements sont conservés sans redémarrage ; aucune commande caméra ni configuration device modifiée. Cache de configuration et vues Laravel actualisés, sans effacer le cache des baux vidéo. Journaux détaillés maintenus sur le serveur.
+
+
+## 28 septembre 2026 — Monitoring serveur
+
+Demande : reprendre le monitoring d’EXAD Tracking dans EXADCAM. Référence consultée en lecture seule ; nouveau menu superadmin après Logs serveur, métriques CPU/RAM/disque/charge, graphiques locaux, réseau par interface et informations système, Pause/Reprendre/Rafraîchir. Mesures réelles collectées toutes les cinq secondes, historique roulant de 180 points maximum, aucune donnée simulée. Champs inconnus et mesures anciennes signalés explicitement.
+
+Collecteur Python sans commande externe ni liaison caméra, service exadcam-monitoring sous compte dédié sans shell, fichier JSON atomique lisible mais non modifiable par www-data. Endpoint GET protégé et limité, lecture bornée et données privées. Routes, contrôleur/service/config, vues/menu, JS/CSS, traductions FR/EN, unités/scripts/tests et docs ajoutés ; bibliothèque ApexCharts partagée et chargée une seule fois avec le tableau de bord.
+
+Validation de ce lot : 12 tests PHP ciblés / 128 assertions (ServerMonitoringTest et ServerLogsTest) sur SQLite en mémoire ; six tests Python sous Linux sur calculs, compteurs, historique et publication ; Pint et syntaxe JS contrôlés. Navigateur de production : indicateurs réels, graphiques, pause stable et rafraîchissement ponctuel, reprise ; bureau 1536 px, tablette 820 px et mobile 390 px sans débordement. Correction visuelle de hauteur ApexCharts appliquée et vérifiée. Il ne s’agit ni d’une suite exhaustive ni d’un test de charge.
+
+Seize fichiers installés après vérification des empreintes et sauvegarde /var/backups/exadcam-monitoring-20260928-104742. Service Monitoring actif, renouvellement des mesures et permissions vérifiés. Quatre processus GPS/vidéo/audio/enregistrements inchangés ; aucune commande envoyée aux caméras. Configuration applicative existante comparée après config:cache, vues seules purgées ; aucun effacement de baux vidéo. Détails et limites dans docs/server-monitoring.md.
+
+
+## 28 septembre 2026 — Monitoring automatique et clarification du stockage
+
+Demande : retirer Pause et Rafraîchir ; capacité annoncée par l’utilisateur : 600 Go de base et extension de 1,2 To, NVMe. Boutons, écouteurs et traductions associés supprimés du Monitoring uniquement. Actualisation 5 s et suspension hors menu/onglet conservées ; refus d’accès arrête les requêtes. Les contrôles du menu Logs serveur restent inchangés.
+
+Contrôle réel en lecture seule : lsblk et /sys/block ne montrent qu’un disque sda, QEMU HARDDISK, non rotatif, 1 288 490 188 800 octets = 1 200 Gio. Partition principale sda1 : 1 287 415 381 504 octets, montée sur / ; /boot et /boot/efi sur les petites partitions du même disque. statvfs(/var/www/exadcam) : 1 247 017 926 656 octets de capacité du système de fichiers. Aucun second disque de 600 Go, ni zone libre de cet ordre à la fin de la partition principale, n’est visible. La couche virtuelle n’identifie pas le protocole physique NVMe. Le total attendu de 1,8 To n’est pas confirmé ; la capacité/l’affectation de l’extension chez l’hébergeur reste à vérifier, sans conclure qu’un disque a disparu. Aucun montage, partitionnement, formatage ou réglage d’hébergeur effectué.
+
+Présentation : libellé Volume EXADCAM, capacités du disque en Go/To décimaux (environ 1,25 To utilisables), explication du périmètre système de fichiers. RAM et réseau conservent leurs unités binaires. Aucune capacité fictive ajoutée et aucune modification du collecteur. Cinq fichiers UI/traductions déployés avec sauvegarde /var/backups/exadcam-monitoring-storage-20260928-111808, vues seules purgées ; PID des quatre listeners et du collecteur Monitoring inchangés.
+
+Validation réellement exécutée : cinq tests ciblés ServerMonitoringTest / 52 assertions sur SQLite en mémoire, syntaxe JS et git diff --check réussis. Navigateur de production : absence des deux boutons, trois graphiques présents, horodatage avançant automatiquement, capacité 1,25 To et note explicative, mobile 390 px sans débordement. Ce lot ne valide pas une modification du stockage physique.
+
+
+## 28 septembre 2026 — Personnalisation globale et logo de flotte
+
+Demande : reproduire les réglages visuels de la référence EXAD Tracking dans EXADCAM, avec superadmin global et admin limité au logo de sa flotte. Menu Personnalisation ajouté ; formulaires compacts responsive FR/EN, aperçus immédiats, annulation et restauration. Identité, logos principal/interne, favicon, sept couleurs, support et fond de carte Google Maps configurables globalement. Pour les clients, seule l’image du menu est remplacée par le logo de leur flotte ; EXADCAM / VIDÉO & GPS restent. Les membres de la flotte voient son logo sans pouvoir le modifier.
+
+Migration additive application_settings + fleets.logo_path, BrandingService et contrôleur/route protégés ; vérification de l’acteur et de la flotte sous verrou avant écriture. Images validées et réencodées PNG via GD, stockées en privé avec noms UUID, routes bornées, logo de flotte accessible uniquement à ses membres actifs. Rejet des identifiants de flotte imposés, champs globaux côté admin, SVG/faux fichiers, images hors bornes, couleurs et liens invalides. Nettoyage des anciens fichiers après succès et des nouveaux après échec. Intégration aux vues partagées, connexion, aide, navigation et choix de carte. EXAD Tracking inchangé.
+
+Contrôles réellement exécutés sur le lot final : 37 tests ciblés / 436 assertions (CustomizationTest, FleetAdministrationTest, ServerMonitoringTest, RealDashboardTest), SQLite en mémoire et stockage factice. Pint, syntaxe des trois fichiers JS et diff --check réussis. Navigateur de production : menu et images, aperçu des couleurs puis Annuler, sauvegarde réelle des valeurs inchangées et message de succès, navigation, bureau/tablette/mobile 1536/820/390 px sans débordement. Les droits/formulaires admin et membre ont été validés par les tests HTTP isolés. Pas de test physique des équipements ni de suite exhaustive.
+
+Déploiement : sauvegarde /var/backups/exadcam-customization-20260928-115145, 27 fichiers installés et migration ciblée appliquée. Valeurs globales EXADCAM conservées ; aucun logo de flotte changé en production. Ajustement du bouton satellite pour le nouveau fond par défaut, version de ressource incrémentée. Vue compilée seule purgée, aucun effacement du cache des baux ; PID GPS/vidéo/audio/enregistrements/Monitoring inchangés. Détails, formats et retour arrière dans docs/customization.md.
+
+
+## 28 septembre 2026 — Restauration permanente, nom de flotte et ordre des menus
+
+Demandes complémentaires : toujours proposer Restaurer par défaut, permettre à l’admin client de renommer sa flotte, placer Enregistrements après Carte. Bouton de restauration toujours présent dans les deux formulaires, même sans logo personnalisé. Côté superadmin, rétablit dans le formulaire identité EXADCAM, palette, logos/favicon, carte Plan et support par défaut. Côté flotte, rétablit le logo de la plateforme et conserve le nom enregistré (abandon du renommage non enregistré). Aperçu et message expliquant de cliquer Enregistrer ; Annuler restaure les valeurs enregistrées. Aucune réinitialisation de production déclenchée pendant le déploiement.
+
+Nouveau champ Nom de la flotte pour les admins actifs : chaîne non vide, 255 caractères maximum, limitée à leur affectation courante. Recontrôle de l’acteur et de la flotte sous verrou ; les champs protégés et les autres flottes restent inaccessibles. Le renommage seul conserve l’image existante, son fichier et toutes les autres colonnes de flotte. La suppression/remise à zéro du logo reste explicite. Identité EXADCAM / VIDÉO & GPS inchangée à côté du logo client. Le nom est enregistré dans fleets.name, sans nouvelle migration. Menu Enregistrements déplacé immédiatement après Carte, avec ses permissions vidéo existantes conservées.
+
+Contrôles de ce lot : 27 tests ciblés / 365 assertions (CustomizationTest et FleetAdministrationTest), stockage factice et SQLite en mémoire. Ajout de cas de renommage sans perte de logo, conservation des autres colonnes et de l’autre flotte, validation des noms, refus des changements de flotte/code/statut/abonnement et des comptes sans droit. Pint, syntaxe JavaScript et diff --check réussis. Navigateur de production : ordre Tableau de bord / Carte / Enregistrements, nouveau bouton, modification provisoire du nom court/couleur/fond de carte puis restauration vérifiée, message et annulation ; largeur 390 px sans débordement des trois boutons. Aucun nouveau nom de flotte ni réglage global arbitraire enregistré en production pendant ces essais.
+
+Sept fichiers applicatifs déployés après comparaison des empreintes et sauvegarde /var/backups/exadcam-customization-reset-20260928-121433 ; seule la compilation des vues a été purgée. PID GPS/vidéo/audio/enregistrements/Monitoring inchangés, aucun vidage du cache des baux vidéo. Tests et documentation synchronisés séparément. La préférence utilisateur de proposer systématiquement un retour aux valeurs par défaut sur les écrans de personnalisation est conservée dans le contexte.
+
+
+## 28 septembre 2026 — Première version des rapports avancés
+
+Accord utilisateur « applique ton idée » après discussion du menu Rapports. Livraison des quatre premiers rapports : Synthèse de flotte, Trajets et arrêts, Utilisation des véhicules, Sécurité. Filtres de dates (31 jours maximum), flotte, département, véhicules (100 maximum), graphique quotidien, comparaison avec la période précédente à durée écoulée égale, tableau triable/recherchable à cinq lignes par défaut, modèles personnels de filtres et Restaurer par défaut. Exports PDF et véritable XLSX avec identité de la plateforme/flotte, heures Kinshasa, méthodologie et mention des données incomplètes. Liens contextuels vers carte et présélection d’Enregistrements, sans lecture caméra automatique.
+
+Calcul asynchrone dédié sur les relevés GPS/ACC/alarmes déjà reçus. Une source fixe par véhicule, bornes d’affectation caméra/véhicule/flotte, intervalles au plus cinq minutes, rejet des coordonnées invalides et des grands sauts. Les données manquantes ne deviennent pas du stationnement. Contrôle des données réelles : nombreux petits déplacements apparents ; ajout d’une confirmation minimale du trajet (60 s, 100 m parcourus, emprise GPS 50 m), sinon intervalle incertain retiré des totaux documentés. Cette heuristique réduit le bruit sans garantir la véracité physique de chaque mouvement. Arrêts affichés dès trois minutes, ACC distingué d’un moteur réellement en marche. Alarmes terminales comptées à leur apparition, pas de score conducteur ni d’inférence ADAS/DMS.
+
+Droit reports.generate et contrôle d’affectation vérifiés sur calcul, lecture, export et détail. Résultats privés à leur auteur, invalidés en cas de changement de rôle/permissions/affectation. Coordonnées conditionnées par map.view et contexte vidéo par video.view. Résultats JSON privés 24 h avec nettoyage horaire ; modèles conservés. Aucun changement de rétention des MP4 SD. Files de calcul et tailles bornées. Envois planifiés, géofences, hors horaires et archivage permanent d’incidents restent hors de ce lot.
+
+Contrôles finaux : 37 tests PHP ciblés / 405 assertions (FleetReportsTest, RecordingAccessTest, CustomizationTest) sur SQLite en mémoire et stockage factice. Un test Node produit un PDF et relit un XLSX : fichier réel, types numériques, durées, filtres, texte potentiellement interprétable comme formule conservé comme chaîne. Pint, syntaxe JS et diff --check réussis. Le premier lancement via artisan test ne transmettait pas GD au sous-processus : relance finale directe de Pest avec GD réussie. Pas de suite exhaustive ni d’essai physique supplémentaire. Audit npm : deux avis modérés transitifs uuid/ExcelJS, chemins v3/v5/v6 non utilisés par ces exports ; aucun avis élevé/critique dans les dépendances de production. Détails dans docs/reports.md.
+
+Déploiement et migration ciblée effectués avec contrôles d’empreintes et sauvegarde /var/backups/exadcam-reports-20260928-130549, affinage /var/backups/exadcam-reports-refinement-20260928-131323. Worker reports et nettoyage dédiés, seule compilation des vues purgée. GPS, vidéo, audio, enregistrements et monitoring : PID conservés, aucun cache de bail purgé, aucune configuration matérielle modifiée.
+
+
+Vérifications navigateur de production terminées : rapport réel sur sept jours, les quatre vues, pagination de cinq lignes, passage à la page suivante et carte contextuelle. Exports réellement téléchargés dans le navigateur : PDF valide (en-tête %PDF) et XLSX relu avec trois feuilles, quatre lignes de synthèse, valeurs numériques, filtres et image du logo. Modèle temporaire créé, restauré après retour aux valeurs par défaut, puis supprimé ; aucun modèle de test conservé. Accès Enregistrements depuis une alarme : bon véhicule et bon jour présélectionnés, aucune requête SD déclenchée automatiquement. Bureau 1536 px, tablette 820 px et mobile 390 px vérifiés sans débordement horizontal de page ; dates Du/Au alignées côte à côte sur mobile après rechargement de la version 3. Taille du navigateur restaurée en fin de vérification.
+
+Dernière synchronisation des sources et documents : /var/backups/exadcam-reports-docs-20260928-132412. Worker de rapport et timer actifs, dernière exécution du nettoyage réussie. Les processus des cinq services préexistants sont inchangés. La durée observée du premier calcul sur les données réelles était d’environ 0,8 s côté worker ; ce constat ne garantit pas le temps de toutes les périodes ou tailles de flotte.
+
+## 29 septembre 2026 — Nissan Patrol et demande de retrait du Backup du Hilux
+
+L’utilisateur précise que Véhicule 2 est désormais Nissan Patrol et autorise le retrait du seul serveur Backup sur le Hilux SmartVision, en conservant EXADCAM. Lecture de la base de production : dashcam 2 affectée à Nissan Patrol 1387AA10 ; dashcam 4 à Toyota Hilux 9863BV01. Aucun renommage supplémentaire effectué. La demande ne concerne ni le Nissan ni le Hilux ESTON.
+
+Contrôle direct le 29 septembre, 08 h 10–08 h 12 Kinshasa, sur la session du Hilux SmartVision uniquement : requête JT808 0x8106 puis inventaire 0x8104. Le Hilux répond en environ 0,37 seconde dans les deux cas. Serveur principal 0x0013 = 62.171.190.15 et port TCP 0x0018 = 7808 ; port UDP 0. Le paramètre standard 0x0017 est renvoyé vide lorsqu’il est demandé explicitement, mais absent de l’inventaire complet de 19 paramètres. Aucun de ces paramètres ne contient l’ancien Backup 119.23.78.106. Ce résultat ne prouve pas que le champ Backup de CarAssist est vide et ne permet pas de le supprimer avec une correspondance vérifiée.
+
+Le code Android CarAssist acquis précédemment confirme des champs distincts jt808.ipbak et jt808.portbak dans Jt808ConfigActivity et leur envoi par WebSocketUtil via settings. Aucune correspondance de ces champs avec une commande JT808 de ce firmware n’a été trouvée. La référence primaire QuecPython définit 0x0017 comme l’adresse de secours standard, pas comme un contrat propre au firmware SmartVision : https://github.com/QuecPython/jtt808/blob/master/docs/en/API_Reference.md . Ne pas inventer un identifiant de port Backup ni mettre 0x0018 à zéro : c’est le port principal partagé standard.
+
+Essai Computer Use pour accéder à CarAssist Windows : native pipe indisponible, os error 2 avant toute interaction. Aucun accès Wi-Fi, extraction de session ou contact fournisseur. L’utilisateur a reçu les valeurs précises à appliquer dans le formulaire distant du Hilux : Main IP conservée, Main Port 7808 conservé, Backup IP vide, Backup Port 0, autres champs inchangés, puis Submit. Il répond ne pas avoir accès au formulaire à distance. Retrait du Backup NON effectué par l’assistant et NON confirmé ; ne pas attendre une manipulation que l’utilisateur a signalée inaccessible.
+
+Vérification complémentaire du code Android : l’entrée « JT808/1078 config » (ll808 / test_808_conf) se situe vers le bas des paramètres, juste avant la section de mise à jour et après l’éventuelle entrée Redémarrer. Elle est cachée initialement et montrée à réception de la configuration jt808. Le chargement distant des paramètres demande bien jt808 au cloud ; Jt808ConfigActivity sait envoyer les modifications par ce cloud lorsque getNetType() > 0. Cette voie distante existe donc dans la version examinée, mais sa disponibilité pour le compte, la version et la caméra de l’utilisateur n’est pas confirmée. Si le menu n’apparaît pas, ne pas en déduire qu’un accès Wi-Fi est autorisé. Aucune session CarAssist exploitable à disposition.
+
+Aucune écriture 0x8103, commande de redémarrage, déconnexion forcée ou modification applicative déployée. Le processus GPS 263273 est conservé et reçoit encore le Hilux après les lectures. Observateurs temporaires retirés, inspecteur loopback fermé et absence d’écoute sur 9229 contrôlée. Premier essai de lecture bornée sans réponse ; deuxième observation avec resynchronisation des trames réussie. Deux tests Node ciblés du lecteur réussis : requêtes en lecture seule réservées au Hilux, retrait des observateurs et masquage des paramètres non nécessaires. Aucun test applicatif complet. Résultats filtrés conservés dans /home/exad-cam/smartvision-backup-20260929 ; aucune valeur de mot de passe ou jeton dans les comptes rendus.
+
+## 29 septembre 2026 — Commande de lecture des Backups CarAssist identifiée
+
+Demande utilisateur : trouver la commande qui identifie les Backups du Hilux SmartVision. Analyse statique complète du trajet lecture/sérialisation/réponse dans CarAssist Android 3.4.8 déjà acquis : relay:<compteur> avec cmd=settings, get.what incluant jt808 et wakeup=1. La réponse get.jt808 alimente les champs ipbak/portbak/ipbak2/portbak2 du formulaire. Le destinataire peer est le SN CarAssist, distinct de l’IMEI et du terminal JT808. Une version ciblée sur la section jt808 est documentée dans docs/smartvision-server-parameters.md, avec références de code, format du relais et limites. Requête cloud identifiée dans le code, NON envoyée ni validée sur la caméra : session CarAssist autorisée et SN exact non disponibles. Aucun secret embarqué ou compte extrait.
+
+Nouvel essai réel en lecture seule sur le Hilux 9863BV01 : 0x8106 pour 0x0013, 0x0018, 0x0017 et 0x0026, sur la session 2013 existante. Réponse à 08 h 20 min 27 s Kinshasa en 175 ms : principal 62.171.190.15, port 7808 ; 0x0017 vide ; 0x0026 = quatre octets nuls, sans liste de serveurs exploitable. Le champ 0x0026 est documenté dans la famille 2019, sans support démontré sur ce firmware. Ces valeurs ne prouvent pas que les Backups CarAssist sont absents. Aucun équivalent constructeur direct à envoyer sur JT808 n’est établi ; ne pas encapsuler arbitrairement le JSON dans 0x8900.
+
+Validation du lecteur : deux tests Node ciblés réussis, cible Hilux exclusivement, aucune écriture, masquage et nettoyage des observateurs. GPS PID 263273 conservé ; inspecteur temporaire refermé. Aucun déploiement applicatif, changement de serveur caméra, redémarrage, Wi-Fi ou démarche fournisseur. Recherche publique additionnelle sans contrat constructeur confirmant la commande directe. La suppression de tous les Backups du Hilux reste autorisée mais non appliquée ; Main IP 62.171.190.15 et Main Port 7808 à préserver. Le Nissan Patrol n’a reçu aucune commande.
+
+## 29 septembre 2026 — Requête complète des rubriques de réglages CarAssist
+
+À la demande de l’utilisateur, la lecture distante générale a été extraite directement de WebSocketUtil.c(String,j), lignes 1241–1263, dans CarAssist Android 3.4.8 déjà acquis. Elle envoie cmd=settings, get.what contenant exactement generic, mobile, softap, dvr, sdcard, bondlist, update, adas, hud, user_agreement, jt808 et wakeup=1, via relay:<compteur><JSON>. Aucune clé wildcard all ni commande forçant l’affichage de tous les formulaires n’est identifiée dans ce chemin.
+
+Exemple du corps, destiné à une session CarAssist authentifiée (peer = SN CarAssist, pas automatiquement IMEI) :
+
+```json
+{
+  "peer": "<SN_CARASSIST_DU_HILUX>",
+  "cmd": "settings",
+  "get": {
+    "what": [
+      "generic",
+      "mobile",
+      "softap",
+      "dvr",
+      "sdcard",
+      "bondlist",
+      "update",
+      "adas",
+      "hud",
+      "user_agreement",
+      "jt808"
+    ]
+  },
+  "wakeup": 1
+}
+```
+
+Le chargement retourne des valeurs de réglage ; les formulaires sont définis dans l’application et restent conditionnels aux données/fonctions renvoyées et aux restrictions du client. Par exemple, ll808 est initialement caché et devient visible après réception de jt808, via setJt808Config/s() dans QuickSettingFragment2. Inclure adas dans la requête ne démontre pas à lui seul une fonction ADAS disponible sur le Hilux.
+
+Autres lectures identifiées séparément dans WebSocketUtil : settings/get/what=[mobile,gps,record] pour les états (lignes 1888–1901) et [reporttimes] (1397–1410). La clé apn est présente dans le chemin de lecture locale QuickSettingFragment2.t(), mais absente de cette requête distante générale ; son support distant n’est pas prouvé. Aucun accès local/Wi-Fi tenté ou demandé.
+
+Contrôle effectué : lecture statique des producteurs, sérialiseur, traitement de réponse et visibilité UI ; extraction vérifiée des 11 sections. Aucune nouvelle commande envoyée à une caméra ou au cloud, aucun réglage modifié, aucune interface EXADCAM implémentée/déployée et aucun test d’intégration réel de cette requête. L’identification ne lève pas le besoin d’une session CarAssist autorisée et du SN exact. La suppression des Backups du Hilux reste non appliquée.
+
+
+## 29 septembre 2026 — Formulaire SmartVision complet, sauvegarde en attente
+
+L’utilisateur a précisé que la capture était un exemple et demandé une fonction
+EXADCAM pour toutes les SmartVision, l’ESTON étant reportée. Il a choisi
+explicitement « Formulaire complet avec envoi en attente ». Cette version ne
+doit pas être confondue avec une intégration de commandes matérielles complète.
+
+Accès livré : superadmin, Flottes → Dashcams → bouton Configuration SmartVision
+(roue dentée). Routes GET/PUT /dashcams/{dashcam}/configuration, réservées au
+superadmin actif et aux modèles SmartVision canoniques. ESTON refusée côté
+serveur et sans bouton. Interface FR/EN compacte, mobile et tablette.
+
+Champs : Main IP/Port, Backup IP/Port, IP2/Port2, Backup IP2/Port2, numéro SIM,
+Terminal ID, Manufacturer ID, Terminal Model, Province ID, City ID, plaque et
+code couleur. Serveurs secondaires : Conserver / Modifier / Supprimer. Une
+suppression est une intention explicite ; elle n’est pas déduite d’un champ vide.
+Une identité facultative vide signifie conserver. Aucune copie implicite d’un
+IMEI, de l’exemple utilisateur ou d’une ancienne réponse JT808 dans ces champs.
+Les valeurs actuelles de la caméra restent inconnues dans ce formulaire.
+
+Le bouton Utiliser le serveur EXADCAM renseigne uniquement le principal dans le
+formulaire, par défaut 62.171.190.15:7808. Valeurs configurables par
+SMARTVISION_SERVER_HOST et SMARTVISION_SERVER_PORT dans config/smartvision.php.
+Annuler les modifications revient à la dernière sauvegarde chargée ; Recharger
+relit le brouillon EXADCAM, pas la caméra. Enregistrer en attente persiste le
+brouillon avec révision, auteur et date. État toujours « En attente · Non
+envoyée », bouton Envoyer désactivé. Aucune file d’envoi automatique, aucun
+listener appelé et aucun réglage ou identifiant du registre modifié.
+
+Migration additive smartvision_configuration_drafts : un brouillon par dashcam,
+relation supprimée avec celle-ci, auteur nullable si compte retiré. Verrouillage
+de la caméra et de l’acteur, contrôle de révision et empreinte d’identité /
+affectation pour refuser un onglet périmé. Un ancien brouillon est signalé si la
+caméra a changé d’identité ou de véhicule. Les contacts GPS ne l’invalident pas.
+Validation stricte des hôtes, ports, longueurs et champs autorisés ; CSRF,
+authentification, compte actif, superadmin et limitation des requêtes conservés.
+
+Contrôles réellement effectués : 48 tests PHP ciblés / 350 assertions
+(SmartvisionConfigurationTest et DashcamRegistryTest), SQLite en mémoire.
+Pint, syntaxe JavaScript et git diff --check réussis. Prévisualisation locale sur
+une base SQLite distincte avec deux appareils fictifs : sauvegarde et relecture
+du brouillon, suppression prévue du Backup, serveur IP2 personnalisé, zéros
+initiaux du SIM/Terminal ID préservés. Rendu bureau, 820 px et 390 px contrôlé,
+aucun champ/bouton débordant sur tablette ou mobile. Pas de suite exhaustive,
+aucune commande matérielle ni essai physique sur caméra.
+
+Déploiement de 13 fichiers vérifiés par empreinte, migration ciblée appliquée,
+sauvegarde /var/backups/exadcam-smartvision-form-20260929-075516. Cache de
+configuration régénéré et seules vues compilées purgées ; aucun cache de baux
+vidéo effacé. PID conservés : GPS 263273, vidéo 190615, audio 167293,
+enregistrements 263274, monitoring 268963, rapports 396144. Navigateur de
+production : action présente sur les deux SmartVision, formulaire du Hilux
+9863BV01 chargé avec état initial inconnu, zéro erreur JS relevée ; table de
+brouillons encore vide. Aucun réglage de test sauvegardé en production.
+
+Reste à faire : intégrer puis valider le véritable transport de configuration
+CarAssist/constructeur et sa lecture de retour avant d’activer l’envoi. Toute
+future activation doit nécessiter une revue et un envoi explicites ; ne pas
+expédier automatiquement les anciens brouillons. Le Backup du Hilux n’a pas
+été supprimé par cette livraison. Le modèle ESTON reste hors périmètre.
+
+Retour arrière : restaurer routes/web.php et les deux vues dashcams sauvegardées,
+régénérer le cache de configuration si nécessaire, purger uniquement les vues.
+La table additive peut rester pour conserver les brouillons ; sa suppression
+exigerait de traiter explicitement les données qu’elle contient. Aucun retour
+arrière n’a été exécuté.
+
+
+## 30 septembre 2026 — Retrait du formulaire SmartVision sans envoi
+
+Demande : « si tu ne peux pas envoyer donc ça ne sert à rien de mettre ce
+formulaire ». Retrait de l’action de configuration SmartVision dans le tableau
+et de l’inclusion de sa modale, ce qui supprime également le chargement de ses
+assets. Les actions de direct et d’édition du registre restent disponibles.
+Les brouillons, leur table, les routes de sauvegarde et les contrôles d’accès
+restent conservés. Aucun paramètre envoyé aux caméras, aucune migration.
+
+Fichiers : resources/views/dashcams/module.blade.php, table.blade.php,
+tests/Feature/SmartvisionConfigurationTest.php et les trois documents de suivi.
+Le test existant vérifie désormais l’absence du formulaire et de ses assets,
+la présence de la modale d’édition normale et la conservation d’un brouillon.
+
+Contrôles exécutés : 48 tests ciblés / 357 assertions (SmartvisionConfigurationTest
+et DashcamRegistryTest), SQLite en mémoire, sans base métier. Pint et syntaxe
+PHP du test réussis ; git diff --check ciblé réussi. Pas de suite exhaustive.
+
+Mise en ligne non effectuée : les accès SSH non interactifs à exad-cam sur
+62.171.190.15 ont été refusés avec les clés locales disponibles. Correctif
+préparé dans analysis/smartvision-hide-20260930 du workspace, avec sauvegardes
+locales et empreintes des deux vues à remplacer. Aucun service distant
+redémarré, aucune modification distante. Le formulaire reste présent sur le
+site public tant que ce retrait n’est pas déployé.
+
+La suppression du Backup du Hilux n’est toujours pas réalisée. Une intégration
+future doit vérifier un véritable envoi et sa lecture de retour ; aucun ancien
+brouillon ne doit être expédié automatiquement.
+
+
+### 30 septembre 2026 — Mise en ligne du retrait SmartVision
+
+Accès SSH rétabli avec les informations fournies par l’utilisateur. Aucune
+clé SSH ajoutée et aucun identifiant d’accès modifié. Les deux vues ont passé
+le contrôle de leur empreinte avant remplacement. Sauvegarde distante :
+/var/backups/exadcam-hide-smartvision-20260930-151125.
+
+Déploiement effectué à 16 h 11 (Kinshasa) : resources/views/dashcams/module.blade.php
+et resources/views/dashcams/table.blade.php uniquement. Purge des vues compilées,
+aucune purge du cache applicatif, aucune migration et aucun redémarrage.
+Vérifications après mise en ligne : deux empreintes finales conformes ; un
+brouillon présent, contenu strictement identique avant/après ; services GPS,
+vidéo, audio, enregistrements, monitoring et rapports tous actifs avec les mêmes
+PID. Réponse HTTP 200 de la connexion. Registre contrôlé dans la session
+superadmin du navigateur de production : formulaire et action de configuration
+retirés, actions habituelles conservées. Les 48 tests / 357 assertions mentionnés
+ci-dessus sont les tests locaux du lot, non une nouvelle exécution en production.
+
+Retour arrière disponible par restauration des deux vues sauvegardées et purge
+des seules vues compilées. Aucun changement de réglage matériel ; le Backup du
+Hilux n’a toujours pas été supprimé par EXADCAM.
+
+
+## 30 septembre 2026 — Connexion directe au Hilux et confirmation du principal
+
+Demande : se connecter à la SmartVision 352538106693487 et conserver le serveur
+principal EXADCAM. Cible vérifiée : dashcam 4, Toyota Hilux 9863BV01, terminal
+JT808 053810669348. À 16 h 17 min 16 s (Kinshasa), le listener confirme une
+session active (HTTP 200, online=true) ; dernier contact reçu cinq secondes
+auparavant. Les journaux montrent une authentification à 16 h 13 min 55 s.
+
+Lecture directe ciblée 0x8106 envoyée à 16 h 17 min 48 s, réponse 0x0104 reçue
+à 16 h 17 min 53 s : 0x0013 = 62.171.190.15 ; 0x0018 = 7808 ; 0x0017 de
+longueur zéro ; 0x0026 de longueur quatre, quatre octets nuls. Le serveur
+principal est déjà correct et reste inchangé. Aucune commande 0x8103,
+aucun redémarrage, aucune déconnexion, aucune modification des brouillons.
+
+Les deux tests existants du lecteur ont été exécutés et ont réussi avant la
+requête. Empreinte du lecteur distant conforme à la copie vérifiée. Le lecteur
+ne cible que le Hilux et supprime ses observateurs après 45 secondes. Inspecteur
+loopback refermé, PID GPS conservé à 263273. Compte rendu filtré conservé dans
+/home/exad-cam/smartvision-backup-command-20260929/ sur le serveur.
+
+Limite inchangée : le Backup standard vide ne démontre pas l’absence des champs
+CarAssist ipbak/portbak, ip2/port2 ou ipbak2/portbak2. Aucun changement arbitraire
+de paramètre ni encapsulation propriétaire non vérifiée. La suppression des
+Backups CarAssist reste non réalisée ; on ne peut pas annoncer « EXADCAM seul ».
+La correspondance standard des paramètres a été revérifiée dans la référence
+primaire https://github.com/QuecPython/jtt808/blob/master/docs/en/API_Reference.md.
+
+Contrôle ultérieur à 16 h 20 min 13 s (Kinshasa) : le listener répond HTTP 409,
+Device offline ; dernier contact enregistré à 16 h 19 min 16 s. La caméra a
+donc perdu sa session après la réponse de lecture. Le service GPS reste actif,
+PID 263273. Ce constat ne démontre pas la cause de la fermeture et ne doit pas
+être présenté comme une connexion stabilisée. Aucun changement de serveur
+caméra ni redémarrage n’a été envoyé.
+
+
+## 30 septembre 2026 — Essai distant d’effacement du Backup standard
+
+Périmètre confirmé par l’utilisateur : commande distante depuis EXADCAM,
+sans passer par Windows/Phone Link, USB ni Wi-Fi. Cible unique : Toyota Hilux
+9863BV01, IMEI 352538106693487, dashcam 4, terminal 053810669348. Le Nissan
+Patrol et les caméras ESTON ne sont pas ciblés.
+
+À 16 h 36 min 14 s (Kinshasa), la session du Hilux est active (HTTP 200).
+Essai exécuté directement sur sa connexion JT808 2013 à 16 h 37 :
+
+- Lecture 0x8106 avant envoi : principal 62.171.190.15, port TCP 7808,
+  Backup standard 0x0017 déjà vide.
+- Une seule écriture 0x8103, série 0xfc05, corps hexadécimal
+  01 00000017 00 : un paramètre, identifiant 0x0017, chaîne de longueur zéro.
+  Aucun autre paramètre écrit, aucun changement du serveur principal.
+- La caméra accuse réception avec résultat 0 (succès) environ 0,9 seconde
+  après l’écriture. La relecture ciblée confirme le principal inchangé et
+  le Backup standard vide à 16 h 37 min 08 s.
+
+Ce résultat valide l’acceptation de cette commande, pas l’effacement de tous
+les serveurs du formulaire CarAssist. Le champ était déjà annoncé vide avant
+le test ; une valeur vide après envoi ne démontre pas que les champs
+propriétaires ipbak/portbak, ip2/port2 et ipbak2/portbak2 ont été modifiés.
+Aucune écriture à des identifiants propriétaires supposés, aucun 0x8105,
+aucun reset, changement de protocole, arrêt de socket ou redémarrage de service.
+
+Script ponctuel et tests dans l’espace de travail :
+analysis/smartvision-remove-backups-20260930/. Huit tests ciblés exécutés et
+réussis avant envoi : sélection de la cible, garde du principal, rejet des
+lectures incomplètes, corps d’écriture strict, corrélation des réponses,
+rejet caméra, expiration sans nouvelle tentative, relecture et nettoyage.
+Syntaxe du lanceur vérifiée. Ce ne sont pas des tests de l’application complète.
+Copie distante vérifiée SHA-256 :
+a39b5626368f0cf700bc14a865f1f0e61798ee32440a9f3ea65c3514ed8c8389.
+Reçu sous /home/exad-cam/smartvision-remove-backups-20260930/ ; inspecteur
+temporaire limité au loopback et refermé, PID GPS conservé à 263273.
+
+Lecture complémentaire 0x8104 à 16 h 38 min 15 s : inventaire de 20 paramètres,
+incluant 0x0017 vide, principal et port inchangés. Aucun champ propriétaire
+CarAssist identifiable dans cet inventaire filtré. Contrôle à 16 h 40 min 06 s :
+session absente. Le journal montre une fermeture par le pair à 16 h 39 min 05 s,
+puis une nouvelle authentification spontanée à 16 h 40 min 10 s. La cause de
+cette fermeture n’est pas établie ; la commande n’a donc pas démontré une
+stabilisation de la connexion. Pas de coupure provoquée côté serveur.
+
+Recherche du transport propriétaire : le code primaire CarAssist Android
+confirme aussi l’écriture cloud, et non seulement sa lecture.
+Jt808ConfigActivity.java:156–226 construit les champs puis appelle
+WebSocketUtil.java:1855–1870 : cmd=settings, set.jt808, wakeup=1,
+transport relay WebSocket. Une chaîne vide et un port zéro sont transmis
+explicitement. ip3/port3 et ip4/port4 ne sont inclus que si présents ; ne pas
+inventer leur disponibilité ni toucher aux paramètres JT905 ou d’identité.
+
+Cette commande cloud pourrait être émise par un client logiciel distant sans
+Windows. Son exécution exige cependant une session CarAssist autorisée et le
+SN réel de la caméra liée au compte. Ces éléments ne sont pas disponibles ;
+ne pas remplacer le SN par l’IMEI ni fabriquer une authentification. Aucun
+relais cloud envoyé et aucune correspondance de ces champs avec une extension
+JT808 de ce firmware validée. La suppression de tous les backups reste donc
+non vérifiée et non résolue. Le formulaire d’envoi non fonctionnel reste retiré.
+
+Contrôle après reconnexion : à 16 h 40 min 51 s, nouvelle réponse 0x0104
+confirmant 62.171.190.15:7808 et 0x0017 vide. Comparaison des inventaires
+sauvegardés : le 29 septembre, 19 paramètres, 0x0017 absent ; après l’écriture,
+20 paramètres avec 0x0017 vide. Cela établit son ajout à la table exposée par
+JT808, sans établir son lien avec les champs propriétaires CarAssist ni une
+persistance après coupure d’alimentation. Les services GPS, vidéo, audio et
+enregistrements sont actifs au dernier contrôle, inspecteur refermé.
+
+
+## 5 octobre 2026 — Historique global et détaillé sur la carte
+
+Demande : appliquer à EXADCAM et EXAD Tracking Mobile le panneau d’historique inspiré des captures Navixy déjà livré sur EXAD Tracking web.
+
+EXADCAM : nouvelle action « Historique et trajets » dans la fiche sur la carte. Panneau blanc compact, périodes prédéfinies et dates personnalisées, résumé global puis chronologie des trajets, stationnements et arrêts moteur allumé. Sélection exclusive ou multiple, tout sélectionner, lignes colorées avec flèches, repères départ/arrivée, parking P, lecture visuelle du parcours, réduction/fermeture. La fiche technique et l’historique GPS paginé existants restent accessibles. Le suivi automatique ne déplace pas la carte pendant la consultation de l’historique.
+
+Calcul : MapTripHistoryService utilise une fenêtre unique de FleetReportBuilder sans période comparative. Les règles des rapports sont conservées ; pour la carte un arrêt observé d’au moins 60 secondes peut être affiché. Un trajet requiert 60 secondes, 100 m parcourus et une emprise de 50 m ; coupures de plus de 300 secondes et sauts GPS ne sont pas reliés. Les trajets peuvent donc différer du découpage d’un autre fournisseur. Les stationnements ne sont pas étendus jusqu’à la fin de la période. Les repères utilisent les coordonnées GPS des extrémités. Les lieux sont présentés en coordonnées exactes : aucune adresse de rue inventée, aucun nouvel appel de géocodage externe. La lecture est une animation du tracé, pas une reconstitution horodatée de la vitesse.
+
+Accès : GET /map/vehicles/{vehicle}/trips, permission map.view, flotte visible/active, caméra active actuellement affectée au véhicule, bornes des affectations caméra/véhicule et véhicule/flotte. Dates locales interprétées dans le fuseau demandé, stockage UTC, période de 32 jours maximum, limitation de débit et taille/temps du calcul, Cache-Control privé sans stockage. Réponses tardives ou annulées ignorées. Aucun changement de paramètres caméra ni commande envoyée.
+
+Fichiers : MapController, MapTripHistoryService, FleetMapService, FleetReportBuilder, routes/web.php, dashboard-map.blade.php, google-map.js, map-trip-history.mjs, map-trip-history.css et traductions map FR/EN. Tests : MapTripHistoryTest et map-trip-history.test.mjs.
+
+Contrôles effectués : 31 tests PHP ciblés (273 assertions) couvrant carte, historique et rapports ; 7 tests ciblés supplémentaires (40 assertions, dont des cas déjà inclus dans les 31) pour historique et rendu Blade. 18 tests JavaScript avec carte/DOM simulés, dont sélection, repères et fermeture. Syntaxes PHP/JS, compilation des vues de production et diff --check vérifiés. Aucun essai visuel dans un navigateur connecté ni essai caméra physique pendant ce lot.
+
+Déploiement EXADCAM réussi le 2026-10-05T12:57:15.553531+00:00 : 11 fichiers installés et empreintes contrôlées, route disponible, vues reconstruites, PHP-FPM rechargé. /login, /up et les deux ressources d’historique répondent HTTP 200. Sauvegarde : /var/backups/cam-history-20261005-125714.tar.gz. GPS, vidéo et audio actifs, PID conservés. Aucun redémarrage des listeners, aucune migration de base.
+
+EXAD Tracking Mobile : API de trajets étendue de façon additive avec history.items, durées de parking et extrémités exactes, déployée le 2026-10-05T12:56:46.627123+00:00. Panneau intégré à la carte (en bas sur téléphone, à gauche sur écran large), vue globale, détail, sélection multiple, parking, départ/arrivée et lecture. Les anciennes réponses sans history restent lisibles. Build 1.0.0+40 signé produit ; il n’est pas publié dans Google Play par ce déploiement web.
+
+
+## 6 octobre 2026 — Design EXADCAM, Trajets/Détails et vitesse de lecture
+
+Demande : conserver le design EXADCAM pour le panneau, nommer les actions simplement « Trajets » et « Détails », ajouter la vitesse manquante.
+
+Livraison : libellés FR/EN raccourcis dans la fiche et le titre du panneau, icônes route/information distinctes, composants locaux arrondis, couleurs de marque, dates et commandes plus lisibles. Panneau de 420 px à gauche ; sur petit écran, départ à 30 % de la carte. Sélecteur ×1/×2/×4/×8/×16/×32/×64, modifiable pendant la lecture, désactivé lorsque plusieurs trajets ou un parking sont sélectionnés. Le temps total de lecture correspond désormais à la durée du trajet divisée par la vitesse choisie. La progression conserve les fractions (range step=any), y compris sur les longs trajets. L’animation reste une interpolation du tracé, sans reconstitution des horodatages de chaque point.
+
+Fichiers : public/js/map-trip-history.mjs, google-map.js, public/css/map-trip-history.css, dashboard-map.blade.php, traductions map FR/EN ; tests/js/map-trip-history.test.mjs. Versions des assets modifiées pour invalider le cache navigateur.
+
+Contrôles exécutés pendant ce lot : 5 tests Node du panneau (dont vitesses, durée, fin, disponibilité du sélecteur), syntaxe JS, 3 tests DashboardMapTest / 14 assertions sur SQLite isolé, diff --check ciblé. Aucun navigateur connecté pour une recette visuelle web. Pas de nouvelle validation caméra physique.
+
+Déployé le 2026-10-06T07:23:26.968072+00:00, six fichiers avec empreintes avant/après contrôlées. Sauvegarde /var/backups/cam-history-20261006-072325.tar.gz (SHA-256 7b359e559bd88e1e396866c131ca3013f749404703358953618aa1e325d86be6). Vues recompilées, PHP-FPM rechargé ; login/up et ressources CSS/JS HTTP 200 avec empreintes conformes. GPS, vidéo et audio actifs avec PID conservés. Aucune migration, aucun changement de listener ni de configuration d’équipement.
+
+
+## 6 octobre 2026 — Widgets cliquables et navigation client
+
+Demande : widgets du tableau de bord cliquables, véhicules équipés vers Véhicules, Dashcams vers le registre pour superadmin et vers Véhicules pour les clients, suppression du menu Dashcams client, libellés Véhicules en ligne/hors ligne et accès à la carte filtrée ; alertes vers Alertes.
+
+Livraison : les indicateurs sont des liens natifs accessibles au clavier, avec survol et focus visibles. La carte s’ouvre via #map?connection=online ou offline ; ces liens supportent le rechargement et le retour navigateur. Le raccourci réinitialise flotte/département/recherche, ferme les anciens trajets/vidéos, désactive le suivi individuel et active Afficher tous avant cadrage. Le filtre utilise online (pas uniquement les états GPS moving/offline) : un véhicule stationné ou sans position GPS peut être connecté ; une caméra jamais connectée appartient au filtre hors ligne. Les véhicules sans caméra active sont exclus du filtre hors ligne. Les véhicules sans position restent consultables dans la liste, sans point inventé sur la carte.
+
+Client : menu Dashcams retiré, anciens liens #dashcams redirigés vers Véhicules. Indicateurs et graphique utilisent les libellés véhicules et les compteurs online_vehicles/offline_vehicles, une fois par véhicule équipé, cohérents avec la source choisie par la carte. Le superadmin conserve les compteurs et le registre des caméras. Le widget de disponibilité ouvre le registre adapté au rôle ; ses liens En ligne/Hors ligne ouvrent la carte filtrée. Les permissions existantes restent appliquées : sans droit de gestion des véhicules, le raccourci ouvre la liste de véhicules en lecture seule ; sans map.view, pas de lien vers carte/alertes. Les accès vidéo existants sont conservés.
+
+Fichiers : DashboardService, welcome, nouveau partial dashboard-metrics, sidebar, layout app, dashboard-charts, dashboard-map, app.js, google-map.js, nouveau map-dashboard-filter.mjs, dashboard-real.css et traductions dashboard FR/EN. Tests : RealDashboardTest et dashboard-map-filter.test.mjs.
+
+Contrôles effectués : 26 tests PHP ciblés / 234 assertions (tableau de bord, carte et rendu), base SQLite en mémoire, et 5 tests Node (filtres, remise à zéro, navigation, liens clients/superadmin). Syntaxes PHP/JS et diff --check ciblé conformes. Premier essai PHP interrompu par un conflit d’identifiants dans une caméra fictive du nouveau test, corrigé avant le passage final. Aucun navigateur connecté pour une recette visuelle interactive web.
+
+Déployé le 2026-10-06T08:30:37.336247+00:00 : 13 fichiers, empreintes avant/après vérifiées, vues recompilées et PHP-FPM rechargé. Sauvegarde /var/backups/cam-dashboard-widgets-20261006-083034.tar.gz, SHA-256 a04718a68aac8fd94b5ef02834d9adec22ca0aed9bea66d1428fb7dc85e7dcd5. Login/up et quatre ressources publiques HTTP 200, ressources conformes aux empreintes. GPS, vidéo et audio actifs avec PID inchangés. Aucune migration, aucune modification des équipements. Reçus et sources avant/après : DASHCAM/analysis/dashboard-widgets-20261006/.
+
+## 7 octobre 2026 — Simplification du panneau de carte
+
+Demande : conserver trois compteurs sur une ligne (Véhicules, En ligne, Hors ligne), retirer Localisées/Positionnés et le sélecteur État/Tous les états, réserver le filtre Flotte au superadmin. Même présentation simplifiée côté client, dans le design propre à chaque plateforme.
+
+Les compteurs sont accessibles au clavier et permettent de sélectionner tous les véhicules, ceux en ligne ou ceux hors ligne ; le compteur Véhicules permet de revenir à tous les états après un raccourci du tableau de bord. L'état actif reste visible. Le champ d'état interne est caché, les liens filtrés existants sont conservés. Trois colonnes sans défilement horizontal sur petit écran ; icônes sous les libellés. Permissions serveur inchangées.
+
+EXADCAM : le sélecteur Flotte n'est plus rendu pour les clients ; le code accepte son absence, y compris dans applyDashboardConnection. Le filtre Département reste disponible lorsqu'il existe des départements. Fichiers : dashboard-map.blade.php, google-map.css, google-map.js, map-dashboard-filter.mjs ; test existant dashboard-map-filter.test.mjs complété pour l'absence du sélecteur client. Assets versionnés map-panel-20261007.
+
+Contrôles de ce lot : 26 tests PHP ciblés / 234 assertions (DashboardMapTest, FleetMapTest, RealDashboardTest), base SQLite isolée ; 5 tests Node de filtres/navigation réussis. Syntaxe JS et diff --check ciblé conformes. Aucun navigateur connecté pour une recette visuelle interactive. Pas de validation matérielle nécessaire pour ce changement d'interface.
+
+Déployé le 2026-10-07T07:53:50.826106+00:00 : quatre fichiers applicatifs, empreintes avant/après et ressources HTTP contrôlées, vues recompilées, PHP-FPM rechargé. Sauvegarde /var/backups/cam-map-panel-20261007-075349.tar.gz, SHA-256 2d7f8e920a64591b51da2c9d306c61b2ae0cbd3352a8d80f65860654896fcb9a. Login, santé et ressources modifiées HTTP 200. Services actifs, PID des listeners inchangés. Aucune migration ni commande aux équipements.
+
+Modification également livrée sur EXAD Tracking web, à la demande explicite de l'utilisateur. Sources, sauvegardes locales et reçus : DASHCAM/analysis/map-panel-20261007/.
+
+## 7 octobre 2026 — Sélecteur flottant et résultats de tous les véhicules
+
+Demande : faire flotter le sélecteur Flotte sans déplacer les éléments du dessous et afficher les véhicules dans les résultats lorsque « Afficher tous les véhicules » est coché, même sans recherche.
+
+Menus de sélection de la carte en position absolue au-dessus du contenu, ouverts vers le haut si nécessaire, hauteur bornée à l'espace visible et défilement limité aux options. La mise au point ne fait plus défiler le panneau. Fermeture lors du défilement du panneau parent ; fermeture extérieure, clavier et sélection existants conservés. Portée CSS/JS limitée aux panneaux de carte, comportement des formulaires/modales préservé.
+
+Les résultats apparaissent lorsque la case est cochée ou qu'une recherche est saisie. Suppression des plafonds d'affichage (50 EXADCAM, 12 EXAD Tracking) : toutes les entrées du jeu de données filtré sont accessibles dans la liste défilante. Les filtres de flotte, d'état et de recherche restent appliqués. Pas de modification de l'API ni des autorisations ; EXAD Tracking conserve son flux cartographique de véhicules positionnés. EXADCAM conserve également l'affichage des résultats via les raccourcis En ligne/Hors ligne.
+
+Version des ressources modifiées : map-overlay-20261007. Aucun navigateur connecté pour une recette visuelle interactive ; syntaxe JS et diff --check ciblé conformes.
+
+Fichiers EXADCAM : public/js/searchable-select.js, public/js/google-map.js, public/css/google-map.css, resources/views/partials/dashboard-map.blade.php, resources/views/dashcams/module.blade.php (version du sélecteur partagé).
+
+Contrôles exécutés : 16 tests PHP / 134 assertions (DashboardMapTest et FleetMapTest) sur SQLite isolé ; 5 tests Node de filtres/navigation réussis. Il s'agit de tests ciblés existants, pas d'une validation visuelle de la géométrie du menu.
+
+Déployé le 2026-10-07T08:12:27.996261+00:00 : cinq fichiers applicatifs avec empreintes avant/après vérifiées. Sauvegarde /var/backups/cam-map-overlay-20261007-081225.tar.gz, SHA-256 34e66341cbe7aa2a09076e8c0ac0769f2ff069e9b43ae8674e11d57edda0cb12. Vues recompilées, PHP-FPM rechargé. Login, santé et ressources CSS/JS HTTP 200, empreintes des ressources conformes. Services actifs et PID des listeners conservés. Aucune migration ni commande aux équipements.
+
+Reçus et sources avant/après : DASHCAM/analysis/map-overlay-20261007/. Même correction livrée sur EXAD Tracking web.

@@ -1,8 +1,8 @@
 <aside class="app-sidebar corporate-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="app-sidebar" aria-label="{{ __('Navigation principale') }}" lang="{{ app()->getLocale() }}">
     <div class="sidebar-brand">
         <a href="#overview" data-nav="overview" class="brand-link brand-link-official" aria-label="{{ __('EXADCAM, vue d’ensemble') }}">
-            <x-company-logo tone="light" class="sidebar-company-logo" />
-            <span class="sidebar-product-name">EXADCAM<small>{{ __('VIDÉO & GPS') }}</small></span>
+            <img class="company-logo sidebar-company-logo" src="{{ $branding['sidebar_logo'] }}" alt="{{ $branding['fleet_name'] ?? $branding['settings']['app_name'] }}" width="68" height="40">
+            <span class="sidebar-product-name">{{ $branding['global'] ? $branding['settings']['short_name'] : 'EXADCAM' }}<small>{{ __('VIDÉO & GPS') }}</small></span>
         </a>
         <button type="button" class="icon-button sidebar-dismiss d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#app-sidebar" aria-label="{{ __('Fermer le menu') }}"><x-icon name="close" /></button>
     </div>
@@ -12,6 +12,7 @@
         <nav class="sidebar-nav nav flex-column" aria-labelledby="supervision-label">
             <a class="nav-link active" href="#overview" data-nav="overview" aria-current="page"><span class="nav-icon"><x-icon name="grid" /></span><span>{{ __('Tableau de bord') }}</span></a>
             @if(\App\Support\FleetAccess::allows(auth()->user(), \App\Models\User::PERMISSION_MAP_VIEW))<a class="nav-link" href="#map" data-nav="map"><span class="nav-icon"><x-icon name="pin" /></span><span>{{ __('Carte') }}</span></a>@endif
+            @if(\App\Support\FleetAccess::allows(auth()->user(), \App\Models\User::PERMISSION_VIDEO_VIEW))<a class="nav-link" href="#recordings" data-nav="recordings"><span class="nav-icon"><x-icon name="camera" /></span><span>{{ __('recordings.title') }}</span></a>@endif
             @if(\App\Support\FleetAccess::browse(auth()->user()))
             @if(auth()->user()->isSuperadmin())
             <details class="sidebar-group">
@@ -25,7 +26,6 @@
             </details>
             @else
                 @if(\App\Support\FleetAccess::registry(auth()->user(), 'vehicles'))<a class="nav-link" href="#vehicles" data-nav="vehicles"><span class="nav-icon"><x-icon name="truck" /></span><span>{{ __('Véhicules') }}</span></a>@endif
-                @if(\App\Support\FleetAccess::dashcams(auth()->user()))<a class="nav-link" href="#dashcams" data-nav="dashcams"><span class="nav-icon"><x-icon name="dashcam" /></span><span>{{ __('Dashcams') }}</span></a>@endif
                 @if(\App\Support\FleetAccess::registry(auth()->user(), 'departments'))<a class="nav-link" href="#departments" data-nav="departments"><span class="nav-icon"><x-icon name="departments" /></span><span>{{ __('Départements') }}</span></a>@endif
             @endif
             @endif
@@ -34,6 +34,9 @@
             @can('viewAny', \App\Models\User::class)
                 <a class="nav-link" href="#users" data-nav="users"><span class="nav-icon"><x-icon name="users" /></span><span>{{ __('Utilisateurs') }}</span></a>
             @endcan
+            @if(auth()->user()->isSuperadmin())<a class="nav-link" href="#server-logs" data-nav="server-logs"><span class="nav-icon"><x-icon name="report" /></span><span>{{ __('server_logs.title') }}</span></a>@endif
+            @if(auth()->user()->isSuperadmin())<a class="nav-link" href="#server-monitoring" data-nav="server-monitoring"><span class="nav-icon"><x-icon name="signal" /></span><span>{{ __('server_monitoring.menu') }}</span></a>@endif
+            @if($branding['can_manage'])<a class="nav-link" href="#customization" data-nav="customization"><span class="nav-icon"><x-icon name="settings" /></span><span>{{ __('customization.title') }}</span></a>@endif
         </nav>
 
         <p class="nav-section-label nav-secondary-label" id="preferences-label">{{ __('PRÉFÉRENCES') }}</p>

@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly expiration of private EXADCAM reports
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+Persistent=true
+Unit=exadcam-report-cleanup.service
+
+[Install]
+WantedBy=timers.target

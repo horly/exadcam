@@ -1,11 +1,15 @@
 <?php
+
 namespace App\Http\Controllers;
+
 use App\Models\User;
-use App\Support\FleetAccess;
+use App\Services\BrandingService;
 use App\Services\DashboardService;
+use App\Support\FleetAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+
 class DashboardPreviewController extends Controller
 {
     public function __invoke(DashboardService $service): View
@@ -13,6 +17,7 @@ class DashboardPreviewController extends Controller
         $googleMap = [
             'apiKey' => (string) config('services.google_maps.api_key'),
             'mapId' => (string) config('services.google_maps.map_id'),
+            'mapType' => app(BrandingService::class)->settings()['map_type'],
             'locale' => app()->getLocale(),
             'iconsUrl' => asset('images/icons.svg'),
             'center' => ['lat' => -4.325, 'lng' => 15.299],
@@ -23,18 +28,21 @@ class DashboardPreviewController extends Controller
             'labels' => trans('map'),
         ];
 
-
         $dashboard = $service->snapshot(auth()->user());
+
         return view('welcome', ['dashboard' => $dashboard, 'dashboardCharts' => $dashboard['charts'],
             'dashboardVideo' => collect($dashboard['video']), 'googleMap' => $googleMap]);
     }
+
     public function data(Request $request, DashboardService $service): JsonResponse
     {
         return response()->json($service->snapshot($request->user()));
     }
+
     public function alerts(Request $request, DashboardService $service): JsonResponse
     {
-        $validated = $request->validate(['page' => ['sometimes','integer','min:1','max:1000000']]);
+        $validated = $request->validate(['page' => ['sometimes', 'integer', 'min:1', 'max:1000000']]);
+
         return response()->json($service->alerts($request->user(), (int) ($validated['page'] ?? 1)));
     }
 }

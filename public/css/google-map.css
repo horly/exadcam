@@ -13,16 +13,19 @@
 .tracking-panel-heading h2 .icon { width: 18px; height: 18px; }
 .tracking-workspace .users-icon-button { display: inline-grid; place-items: center; padding: 0; flex-shrink: 0; width: 32px; height: 32px; border: 1px solid #d4e1f2; border-radius: 13px; color: #345f91; background: #fff; }
 .tracking-workspace .users-icon-button .icon { width: 17px; height: 17px; }
-.tracking-stats { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
-.tracking-stat { position: relative; padding: 11px 10px; min-height: 63px; border: 1px solid #d5e2f4; border-radius: 16px; background: #ffffffd9; }
-.tracking-stat .tracking-stat-icon { position: absolute; top: 10px; right: 9px; display: grid; place-items: center; width: 25px; height: 25px; background: #e9effa; border-radius: 12px; color: #315885; }
+.tracking-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
+.tracking-stat { position: relative; min-width: 0; padding: 10px 8px; min-height: 68px; text-align: left; color: inherit; font: inherit; cursor: pointer; border: 1px solid #d5e2f4; border-radius: 16px; background: #ffffffd9; }
+.tracking-stat .tracking-stat-icon { position: absolute; bottom: 9px; right: 7px; display: grid; place-items: center; width: 22px; height: 22px; background: #e9effa; border-radius: 12px; color: #315885; }
 .tracking-stat-icon .icon { width: 14px; height: 14px; }
-.tracking-stat .tracking-stat-label { display: block; max-width: calc(100% - 28px); font-size: 10px; font-weight: 700; color: #6c819b; }
-.tracking-stat strong { display: block; font-size: 17px; font-weight: 700; margin-top: 6px; line-height: 1; }
+.tracking-stat .tracking-stat-label { display: block; white-space: nowrap; font-size: 10px; font-weight: 700; color: #6c819b; }
+.tracking-stat strong { display: block; font-size: 17px; font-weight: 700; margin-top: 12px; line-height: 1; padding-right: 22px; }
 .tracking-stat.stat-online { border-color: #a4dfcd; background: #ecfbf5b0; }
 .stat-online .tracking-stat-icon { background: #d2f2e8; color: #139574; }
 .tracking-stat.stat-offline { border-color: #f0cfd3; background: #fff6f6ba; }
 .stat-offline .tracking-stat-icon { background: #fbe2e5; color: #d74757; }
+.tracking-stat[aria-pressed="true"] { box-shadow: inset 0 0 0 1px currentColor; }
+.tracking-stat:hover { filter: brightness(.98); }
+.tracking-stat:focus-visible { outline: 2px solid #345f91; outline-offset: 2px; }
 .tracking-show-all { display: flex; align-items: center; gap: 10px; border: 1px solid #d4e1f2; border-radius: 14px; padding: 10px 11px; font-size: 10px; font-weight: 700; background: #fff; cursor: pointer; }
 .tracking-show-all .icon { height: 18px; width: 18px; }
 .tracking-workspace .form-check-input { margin: 0; flex-shrink: 0; border-color: #92aac7; cursor: pointer; }
@@ -36,6 +39,7 @@
 .tracking-filters .searchable-select-options { max-height: 140px; }
 .tracking-department-filter { margin-top: 12px; }
 .tracking-filters .tracking-search-caption { margin-top: 14px; }
+.tracking-filters > input[type="hidden"] + .tracking-department-filter[hidden] + .tracking-search-caption { margin-top: 0; }
 .tracking-search { display: flex; align-items: center; border: 1px solid #d4e1f2; background: #fff; padding: 9px 11px; border-radius: 13px; gap: 9px; }
 .tracking-search .icon { width: 16px; height: 16px; color: #7690ae; }
 .tracking-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: #203d65; font: inherit; font-size: 11px; }
@@ -267,3 +271,9 @@ body.map-video-expanded .tracking-workspace { isolation: auto; }
     .tracking-video-panel.is-expanded .tracking-channel-heading { margin-bottom: 4px; }
     .tracking-video-panel.is-expanded .tracking-channel footer { margin-top: 4px; }
 }
+
+/* Floating map selectors: no reflow of search, actions or results. */
+.tracking-filters .searchable-select.is-open { z-index: 20; }
+.tracking-filters .searchable-select-panel { position: absolute; inset-inline: 0; top: calc(100% + 6px); z-index: 20; margin: 0; display: flex; flex-direction: column; max-height: 240px; overflow: hidden; box-shadow: 0 12px 30px #18345126; }
+.tracking-filters .searchable-select-search { flex-shrink: 0; }
+.tracking-filters .searchable-select-options { min-height: 0; overscroll-behavior: contain; }
