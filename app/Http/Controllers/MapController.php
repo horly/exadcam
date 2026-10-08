@@ -17,8 +17,9 @@ class MapController extends Controller
         abort_unless($request->user()->hasClientPermission(User::PERMISSION_MAP_VIEW), 403);
         $data = $request->validate([
             'source_id' => ['required', 'integer', 'min:1'],
-            'date' => ['required', 'date_format:Y-m-d', 'after_or_equal:2020-01-01', 'before_or_equal:tomorrow'],
-            'timezone' => ['required', 'timezone:all'],
+            'summary_only' => ['sometimes', 'boolean'],
+            'date' => ['required_unless:summary_only,1', 'date_format:Y-m-d', 'after_or_equal:2020-01-01', 'before_or_equal:tomorrow'],
+            'timezone' => ['required_unless:summary_only,1', 'timezone:all'],
             'page' => ['sometimes', 'integer', 'between:1,10000'],
         ]);
 

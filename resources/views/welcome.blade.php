@@ -25,6 +25,7 @@
     <section class="panel alerts-section" aria-labelledby="alerts-title">
         <header class="panel-heading"><div class="panel-title"><x-icon name="bell" /><h2 id="alerts-title">{{ __('Dernières alertes') }}</h2><span class="count-tag" data-alert-count>{{ $dashboard['metrics']['alerts'] }}</span></div></header>
         <p class="dashboard-alert-caption">{{ __('Alarmes reçues sur 7 jours et pertes de contact en cours.') }}</p>
+        @include('partials.alert-sound-controls')
         <div id="dashboard-alerts" class="dashboard-alert-list"></div>
         <p id="dashboard-alert-error" class="dashboard-empty" role="status" hidden></p>
         <footer class="dashboard-pagination alerts-pagination"><span id="dashboard-alert-summary"></span><nav aria-label="{{ __('Pages des alertes') }}" id="dashboard-alert-pages"></nav></footer>
@@ -41,9 +42,10 @@
 @include('customization.module')
 @include('registry.module')
 <noscript><p class="dashboard-empty">{{ __('Activez JavaScript pour afficher les listes et actualiser les données.') }}</p></noscript>
+@include('partials.alert-notifications')
 @endsection
 @push('styles')<link rel="stylesheet" href="{{ asset('css/dashboard-real.css') }}?v=dashboard-widgets-20261006">@endpush
 @push('scripts')
 <script type="application/json" id="dashboard-real-config">{!! \Illuminate\Support\Js::encode(['data' => $dashboard, 'url' => route('dashboard.data'), 'alertsUrl' => route('dashboard.alerts'), 'locale' => app()->getLocale(), 'labels' => ['empty' => __('Aucune alerte reçue sur cette période.'), 'refresh' => __('Actualisé à'), 'failed' => __('Actualisation impossible. Les dernières données reçues restent affichées.'), 'alerts_failed' => __('Impossible de charger les alertes. Réessayez.'), 'from' => __('Affichage'), 'of' => __('sur'), 'video' => __('Vidéos'), 'previous' => __('Précédent'), 'next' => __('Suivant'), 'contact' => __('Dernier contact')]]) !!}</script>
-<script src="{{ asset('js/dashboard-real.js') }}?v=dashboard-real-1" defer></script>
+<script src="{{ asset('js/dashboard-real.js') }}?v=cam-alerts-map-20261008" defer></script>
 @endpush

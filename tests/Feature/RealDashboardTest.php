@@ -150,3 +150,64 @@ it('keeps restricted users within their read-only vehicle access without map sho
         ->and($xpath->query('//a[contains(@class,"metric-card-link") and @href="#fleet"]')->length)->toBe(1);
     $this->getJson('/map/vehicles')->assertForbidden();
 });
+
+it('starts notifications silently and streams only new rising alarm edges', function () {
+    ($this->position)(now()->subMinute(), 1);
+    $cursor = $this->actingAs($this->admin)->getJson('/dashboard/alerts/recent')->assertOk()
+        ->assertHeader('Cache-Control', 'no-store, private')->assertJsonCount(0, 'data')->assertJsonPath('total',1)->json('cursor');
+    ($this->position)(now()->subSeconds(50), 1);
+    ($this->position)(now()->subSeconds(40), 0);
+    ($this->position)(now()->subSeconds(30), 5);
+    $response = $this->getJson('/dashboard/alerts/recent?'.http_build_query($cursor))->assertOk()->assertJsonCount(1,'data')
+        ->assertJsonPath('data.0.vehicle', 'My vehicle')->assertJsonPath('data.0.title', 'SOS · Fatigue au volant')
+        ->assertDontSee($this->cam->imei)->assertDontSee('latitude')->assertDontSee('model');
+    $this->getJson('/dashboard/alerts/recent?'.http_build_query($response->json('cursor')))->assertOk()->assertJsonCount(0,'data');
+});
+
+it('delivers a full alarm backlog in ascending batches without skipping notifications', function () {
+    $cursor = $this->actingAs($this->admin)->getJson('/dashboard/alerts/recent')->assertOk()->json('cursor');
+    for ($i = 0; $i < 50; $i++) ($this->position)(now()->subSeconds(60-$i), $i % 2 ? 1 : 0);
+    $one = $this->getJson('/dashboard/alerts/recent?'.http_build_query($cursor))->assertOk()->assertJsonCount(20,'data')->assertJsonPath('has_more',true)->json();
+    $two = $this->getJson('/dashboard/alerts/recent?'.http_build_query($one['cursor']))->assertOk()->assertJsonCount(5,'data')->assertJsonPath('has_more',false)->json();
+    expect(array_intersect(array_column($one['data'],'id'),array_column($two['data'],'id')))->toBeEmpty();
+});
+
+it('notifies loss of contact once and again after a new connection session', function () {
+    $this->cam->forceFill(['last_seen_at'=>now()->subMinutes(2)])->save();
+    $cursor = $this->actingAs($this->admin)->getJson('/dashboard/alerts/recent')->assertOk()->json('cursor');
+    $this->travel(2)->minutes();
+    $cursor = $this->getJson('/dashboard/alerts/recent?'.http_build_query($cursor))->assertOk()->assertJsonCount(1,'data')
+        ->assertJsonPath('data.0.kind','connection')->json('cursor');
+    $this->getJson('/dashboard/alerts/recent?'.http_build_query($cursor))->assertOk()->assertJsonCount(0,'data');
+    $this->cam->forceFill(['last_seen_at'=>now()])->save();
+    $this->getJson('/dashboard/alerts/recent?'.http_build_query($cursor))->assertOk()->assertJsonCount(0,'data');
+    $this->travel(4)->minutes();
+    $this->getJson('/dashboard/alerts/recent?'.http_build_query($cursor))->assertOk()->assertJsonCount(1,'data')->assertJsonPath('data.0.title','Perte de contact');
+});
+
+it('keeps notification feeds within fleet and permission boundaries', function () {
+    $cursor = $this->actingAs($this->admin)->getJson('/dashboard/alerts/recent')->assertOk()->json('cursor');
+    $fleet = Fleet::create(['name'=>'Other private fleet','code'=>'OTHER-PRIVATE']);
+    $car = Vehicle::create(['name'=>'Other private vehicle','fleet_id'=>$fleet->id]);
+    $car->forceFill(['fleet_assigned_at'=>now()->subDay()])->save();
+    $camera = Dashcam::create(['name'=>'Other private camera','imei'=>'687654321012349','vehicle_id'=>$car->id]);
+    $camera->forceFill(['vehicle_assigned_at'=>now()->subDay(),'last_seen_at'=>now()->subMinutes(4)])->save();
+    ($this->position)(now()->subSeconds(5), 1, 0, $camera);
+    $this->getJson('/dashboard/alerts/recent?'.http_build_query($cursor))->assertOk()->assertJsonCount(0,'data')->assertDontSee('Other private');
+    ($this->position)(now()->subSeconds(4), 1);
+    $this->cam->forceFill(['vehicle_assigned_at'=>now()])->save();
+    $this->getJson('/dashboard/alerts/recent?'.http_build_query($cursor))->assertOk()->assertJsonCount(0,'data');
+    $video = User::factory()->create(['role'=>'user','fleet_id'=>$this->fleet->id,'permissions'=>['video.view']]);
+    $this->actingAs($video)->getJson('/dashboard/alerts/recent')->assertForbidden();
+    $this->get('/')->assertOk()->assertDontSee('id="cam-notification-config"',false);
+    auth()->logout(); $this->getJson('/dashboard/alerts/recent')->assertUnauthorized();
+});
+
+it('renders sound controls and validates complete notification cursors', function () {
+    $response = $this->actingAs($this->admin)->get('/')->assertOk()->assertSee('Activer le son des alertes')->assertSee('Tester le son')
+        ->assertSee('css/alert-notifications.css',false)->assertSee('js/alert-notifications.mjs',false);
+    if ($preview = getenv('EXAD_PREVIEW_HTML')) file_put_contents($preview, $response->getContent());
+    $this->getJson('/dashboard/alerts/recent?after_alarm=1')->assertUnprocessable();
+    $this->getJson('/dashboard/alerts/recent?after_alarm=-1&after_connection_at=bad&after_connection_id=0')->assertUnprocessable();
+    $this->actingAs(User::factory()->create(['role'=>'superadmin']))->getJson('/dashboard/alerts/recent')->assertOk();
+});

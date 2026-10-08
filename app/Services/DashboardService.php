@@ -121,17 +121,19 @@ class DashboardService
             'periods' => $periods, 'status' => ['labels' => [__('En ligne'), __('Sans contact récent')], 'series' => [$online, $total - $online]]];
     }
 
-    private function alertQuery(User $user): Builder
+    private function alertQuery(User $user, ?Carbon $since = null, ?int $throughId = null): Builder
     {
         // The predecessor is NOT restricted to the display period. A continuing alarm
         // must not become a new event when the seven-day window advances.
-        $since = now()->subDays(7);
+        $since ??= now()->subDays(7);
         $previousIds = FleetAccess::scopeDashcams(Dashcam::query(), $user)->where('enabled', true)
             ->whereNotNull('vehicle_id')->select('id')->selectSub(DB::table('dashcam_positions')
                 ->select('id')->whereColumn('dashcam_id', 'dashcams.id')->where('recorded_at', '<', $since)
+                ->when($throughId !== null, fn ($q) => $q->where('id', '<=', $throughId))
                 ->orderByDesc('recorded_at')->orderByDesc('id')->limit(1), 'previous_id')->get()->pluck('previous_id')->filter();
         $fields = ['p.id', 'p.dashcam_id', 'd.id as camera_id', 'v.id as vehicle_id', 'v.name', 'v.registration_number', 'f.name as fleet', 'd.model', 'p.recorded_at as occurred_at', 'p.alarm'];
-        $period = $this->positions($user)->where('p.recorded_at', '>=', $since)->select($fields);
+        $period = $this->positions($user)->where('p.recorded_at', '>=', $since)
+            ->when($throughId !== null, fn ($q) => $q->where('p.id', '<=', $throughId))->select($fields);
         $predecessors = $this->positions($user)->whereIn('p.id', $previousIds)->select($fields);
         // A single ordered pass includes zero/reset packets, not a correlated
         // predecessor lookup for every alarm packet. Both branches retain the fences.
@@ -140,13 +142,17 @@ class DashboardService
         $alarms = DB::query()->fromSub($signals, 'signals')->select(['id','camera_id','vehicle_id','name','registration_number','fleet','model','occurred_at'])
             ->selectRaw("'alarm' as kind, (alarm & ~COALESCE(previous_alarm, 0)) as mask")
             ->where('occurred_at', '>=', $since)->whereRaw('(alarm & ~COALESCE(previous_alarm, 0)) <> 0');
-        $offline = DB::table('dashcams as d')->join('vehicles as v','v.id','=','d.vehicle_id')->join('fleets as f','f.id','=','v.fleet_id')
+        return DB::query()->fromSub($alarms->unionAll($this->connectionQuery($user)), 'events');
+    }
+
+    private function connectionQuery(User $user): Builder
+    {
+        return DB::table('dashcams as d')->join('vehicles as v','v.id','=','d.vehicle_id')->join('fleets as f','f.id','=','v.fleet_id')
             ->whereIn('d.id', FleetAccess::scopeDashcams(Dashcam::query(), $user)->select('dashcams.id'))
             ->where('d.enabled', true)->where('d.last_seen_at', '<', now()->subMinutes(3))
             ->whereColumn('d.last_seen_at','>=','d.vehicle_assigned_at')->whereColumn('d.last_seen_at','>=','v.fleet_assigned_at')
             ->select(['d.id','d.id as camera_id','v.id as vehicle_id','v.name','v.registration_number','f.name as fleet','d.model','d.last_seen_at as occurred_at'])
             ->selectRaw("'connection' as kind, 0 as mask");
-        return DB::query()->fromSub($alarms->unionAll($offline), 'events');
     }
 
     public function alerts(User $user, int $page = 1, int $perPage = 10): array
@@ -157,7 +163,12 @@ class DashboardService
         $last = max(1, (int) ceil($total / $perPage));
         $page = min(max(1, $page), $last);
         $rows = $query->orderByDesc('occurred_at')->orderBy('kind')->orderByDesc('id')->forPage($page, $perPage)->get();
-        $data = $rows->map(function ($row) use ($user) {
+        $data = $rows->map(fn ($row) => $this->alertData($row, $user))->all();
+        return ['data' => $data, 'total' => $total, 'page' => $page, 'last_page' => $last];
+    }
+
+    private function alertData(object $row, User $user): array
+    {
             $connection = $row->kind === 'connection';
             return ['id' => $row->kind.'-'.$row->id, 'vehicle_id' => (int) $row->vehicle_id,
                 'vehicle' => $row->name, 'registration' => $row->registration_number, 'fleet' => $row->fleet,
@@ -165,8 +176,41 @@ class DashboardService
                 'kind' => $row->kind, 'title' => $connection ? __('Perte de contact') : $this->alarmLabel((int) $row->mask),
                 'description' => $connection ? __('Aucun contact reçu depuis plus de 3 minutes. La date indiquée est celle du dernier contact.') : __('Signalement transmis par la dashcam à la date indiquée.'),
             ];
-        })->all();
-        return ['data' => $data, 'total' => $total, 'page' => $page, 'last_page' => $last];
+    }
+
+    public function recentAlerts(User $user, array $cursor): array
+    {
+        abort_unless(FleetAccess::allows($user, User::PERMISSION_MAP_VIEW), 403);
+        $query = $this->alertQuery($user);
+        $total = (clone $query)->count();
+        if (! array_key_exists('after_alarm', $cursor)) {
+            // First visit establishes a baseline without replaying seven days of alerts.
+            return ['data' => [], 'total' => $total, 'has_more' => false, 'cursor' => [
+                'after_alarm' => (int) ($this->positions($user)->max('p.id') ?? 0),
+                'after_connection_at' => now()->subMinutes(3)->format('Y-m-d H:i:s'),
+                'after_connection_id' => 0,
+            ]];
+        }
+        // Only recompute edges around newly received packets, with their predecessor.
+        // Capture a high watermark so concurrent arrivals cannot be skipped.
+        $bounds = $this->positions($user)->where('p.id', '>', $cursor['after_alarm'])
+            ->where('p.recorded_at', '>=', now()->subDays(7))
+            ->selectRaw('MIN(p.recorded_at) as first_at, MAX(p.id) as through_id')->first();
+        $alarms = $bounds->first_at ? $this->alertQuery($user, Carbon::parse($bounds->first_at, 'UTC'), (int) $bounds->through_id)
+            ->where('kind', 'alarm')->where('id', '>', $cursor['after_alarm'])->orderBy('id')->limit(20)->get() : collect();
+        $connections = DB::query()->fromSub($this->connectionQuery($user), 'connections')->where(function ($q) use ($cursor) {
+            $q->where('occurred_at', '>', $cursor['after_connection_at'])
+                ->orWhere(fn ($q) => $q->where('occurred_at', $cursor['after_connection_at'])->where('id', '>', $cursor['after_connection_id']));
+        })->orderBy('occurred_at')->orderBy('id')->limit(20)->get();
+        if ($alarms->count() === 20) $cursor['after_alarm'] = (int) $alarms->last()->id;
+        elseif ($bounds->through_id !== null) $cursor['after_alarm'] = (int) $bounds->through_id;
+        if ($connections->isNotEmpty()) {
+            $cursor['after_connection_at'] = Carbon::parse($connections->last()->occurred_at)->format('Y-m-d H:i:s');
+            $cursor['after_connection_id'] = (int) $connections->last()->id;
+        }
+        $data = $alarms->concat($connections)->sortBy('occurred_at')->map(fn ($row) => $this->alertData($row, $user))->values()->all();
+        return ['data' => $data, 'total' => $total, 'cursor' => $cursor,
+            'has_more' => $alarms->count() === 20 || $connections->count() === 20];
     }
 
     private function alarmLabel(int $mask): string

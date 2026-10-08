@@ -107,6 +107,7 @@
         fleetStatus=button.dataset.fleetStatus; fleetPage=1;
         document.querySelectorAll('[data-fleet-status]').forEach(n=>{ const chosen=n===button; n.classList.toggle('active',chosen); n.setAttribute('aria-pressed',String(chosen)); }); renderFleet();
     }));
+    document.addEventListener('exadcam:alerts-received',() => { if(active()) void refresh(); });
     document.addEventListener('exadcam:view-changed',()=>{ alertRequest++; render(); void refresh(); });
     document.addEventListener('visibilitychange',()=>{if(active()) void refresh();else clearTimeout(timer);});
     window.addEventListener('pagehide',()=>clearTimeout(timer));

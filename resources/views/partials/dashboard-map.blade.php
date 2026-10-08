@@ -45,8 +45,8 @@
                 @foreach([1,2] as $channel)
                 <section class="tracking-channel" data-map-channel="{{ $channel }}">
                     <div class="tracking-channel-heading"><x-icon name="camera" /><h3>{{ __('map.channel') }} {{ $channel }}</h3><span>{{ __('map.live') }}</span></div>
-                    <div class="tracking-video-screen"><video playsinline muted controls preload="none" aria-label="{{ __('map.channel') }} {{ $channel }}"></video><div class="tracking-video-placeholder"><x-icon name="camera" /><button type="button" class="btn tracking-play" data-video-start><x-icon name="play" />{{ __('map.play') }}</button></div></div>
-                    <footer><p role="status" data-video-status>{{ __('map.video_idle') }}</p><button type="button" class="btn tracking-video-stop" data-video-stop hidden>{{ __('map.stop') }}</button></footer>
+                    <div class="tracking-video-screen"><video playsinline muted controls preload="none" aria-label="{{ __('map.channel') }} {{ $channel }}"></video><div class="tracking-video-placeholder"><x-icon name="camera" /><button type="button" class="btn tracking-play" data-video-start hidden><x-icon name="play" /><span data-video-start-label>{{ __('map.play') }}</span></button></div><div class="tracking-video-loading" data-video-loading hidden aria-hidden="true"><span class="tracking-video-spinner"></span><strong data-video-loading-label></strong></div></div>
+                    <footer><p role="status" aria-live="polite" data-video-status>{{ __('map.video_idle') }}</p><button type="button" class="btn tracking-video-stop" data-video-stop hidden>{{ __('map.stop') }}</button></footer>
                 </section>
                 @endforeach
             </div>
@@ -65,32 +65,14 @@
         </div>
         <div class="modal-body">
             <div id="tracking-history-message" role="status"></div>
-            <nav class="tracking-details-tabs nav" role="tablist" aria-label="{{ __('map.history_details') }}">
-                <button class="active" id="tracking-summary-tab" data-bs-toggle="tab" data-bs-target="#tracking-summary-pane" type="button" role="tab" aria-controls="tracking-summary-pane" aria-selected="true"><x-icon name="grid" />{{ __('map.summary') }}</button>
-                <button id="tracking-history-tab" data-bs-toggle="tab" data-bs-target="#tracking-history-pane" type="button" role="tab" aria-controls="tracking-history-pane" aria-selected="false"><x-icon name="clock" />{{ __('map.history_tab') }}</button>
-            </nav>
-            <div class="tab-content">
-                <div class="tab-pane show active" id="tracking-summary-pane" role="tabpanel" aria-labelledby="tracking-summary-tab" tabindex="0"><div id="tracking-equipment-fields"></div></div>
-                <div class="tab-pane" id="tracking-history-pane" role="tabpanel" aria-labelledby="tracking-history-tab" tabindex="0">
-                    <div class="tracking-history-toolbar"><div><h3>{{ __('map.gps_history') }}</h3><p>{{ __('map.history_hint') }}</p></div><label>{{ __('map.date') }}<input type="date" id="tracking-history-date" class="form-control" required min="2020-01-01"></label></div>
-                    <div class="table-responsive"><table class="table tracking-history-table"><thead><tr><th>{{ __('map.position_date') }}</th><th>{{ __('map.state') }}</th><th>{{ __('map.speed') }}</th><th>{{ __('map.ignition') }}</th><th>{{ __('map.coordinates') }}</th></tr></thead><tbody id="tracking-history-rows"></tbody></table></div>
-                    <div class="tracking-history-pagination">
-                        <p class="tracking-history-summary" id="tracking-history-summary" role="status"></p>
-                        <nav aria-label="{{ __('map.history_pagination') }}">
-                            <button type="button" id="tracking-history-prev" class="tracking-page-button" aria-label="{{ __('map.previous') }}" disabled><x-icon name="chevron" /></button>
-                            <div id="tracking-history-pages" class="tracking-history-pages"></div>
-                            <button type="button" id="tracking-history-next" class="tracking-page-button" aria-label="{{ __('map.next') }}" disabled><x-icon name="chevron" /></button>
-                        </nav>
-                    </div>
-                </div>
-            </div>
+            <div id="tracking-equipment-fields"></div>
         </div>
         <div class="modal-footer"><p><x-icon name="shield" />{{ __('map.latest_signal_note') }}</p><button type="button" class="btn btn-primary" data-bs-dismiss="modal">{{ __('map.close') }}</button></div>
     </div></div>
 </div>
 @endif
-@push('styles')<link rel="stylesheet" href="{{ asset('css/map-trip-history.css') }}?v=history-design-20261005"><link rel="stylesheet" href="{{ asset('css/google-map.css') }}?v=map-overlay-20261007">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/map-trip-history.css') }}?v=history-design-20261005"><link rel="stylesheet" href="{{ asset('css/google-map.css') }}?v=cam-alerts-map-20261008">@endpush
 @push('scripts')
 <script id="google-map-data" type="application/json">{!! \Illuminate\Support\Js::encode($googleMap) !!}</script>
-<script src="{{ asset('js/google-map.js') }}?v=map-overlay-20261007" defer></script>
+<script src="{{ asset('js/google-map.js') }}?v=cam-alerts-map-20261008" defer></script>
 @endpush

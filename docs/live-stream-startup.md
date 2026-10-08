@@ -214,3 +214,9 @@ processus applique directement transport-policy.js. Véhicule 2 avait également
 repris contact pendant les contrôles précédents. Les retours ponctuels et les
 tests ne démontrent pas une stabilité prolongée. Les affirmations « en attente »
 plus haut décrivent uniquement les étapes précédentes de ce lot.
+
+## 8 octobre 2026 — Ouverture directe depuis la carte
+
+À la demande de l'utilisateur, Vidéos sur la fiche carte démarre les deux canaux disponibles automatiquement ; le bouton Lecture sert à reprendre après arrêt/pause. Le panneau montre immédiatement la connexion, puis le chargement jusqu'à la lecture effective. Une première image fixe ne masque plus l'indicateur de préparation. Reconnexions signalées, sessions indépendantes, arrêt pendant chargement et fermetures protégés par générations. Repli Démarrer si le navigateur exige une interaction ; Réessayer sur erreur définitive. Audio et réserves HLS existants conservés. Nouveau contrôleur d'interface map-video-player.mjs, commun aux deux lecteurs de la carte, sans changement du lecteur HLS partagé.
+
+Déployé le 2026-10-08T09:08:02.957312+00:00. Vérifications ciblées du lot : 64 tests Node, 16 tests PHP / 134 assertions, ressources publiques HTTP 200 et empreintes conformes. Aucun essai sur caméra réelle ni navigateur connecté ; aucune nouvelle mesure de latence matérielle. Voir la dernière entrée de project-history.md et le reçu DASHCAM/analysis/cam-map-live-20261008/cam-receipt.json.

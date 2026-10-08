@@ -4091,3 +4091,52 @@ Contrôles exécutés : 16 tests PHP / 134 assertions (DashboardMapTest et Fleet
 Déployé le 2026-10-07T08:12:27.996261+00:00 : cinq fichiers applicatifs avec empreintes avant/après vérifiées. Sauvegarde /var/backups/cam-map-overlay-20261007-081225.tar.gz, SHA-256 34e66341cbe7aa2a09076e8c0ac0769f2ff069e9b43ae8674e11d57edda0cb12. Vues recompilées, PHP-FPM rechargé. Login, santé et ressources CSS/JS HTTP 200, empreintes des ressources conformes. Services actifs et PID des listeners conservés. Aucune migration ni commande aux équipements.
 
 Reçus et sources avant/après : DASHCAM/analysis/map-overlay-20261007/. Même correction livrée sur EXAD Tracking web.
+
+## 8 octobre 2026 — Sélection visible et démarrage vidéo depuis la carte
+
+Demande : conserver la liste après sélection pour lire les vitesses, ouvrir automatiquement la fiche et lancer les vidéos au clic sur Vidéos. Afficher clairement le chargement ; réserver Lecture à la reprise après arrêt.
+
+La sélection d'une ligne garde tous les résultats filtrés et le panneau visibles, centre le véhicule et ouvre sa fiche. Liste et fiche continuent d'actualiser les vitesses. Le panneau ne se replie plus automatiquement lors de cette sélection ou d'un redimensionnement. Une sélection pendant le chargement du SDK ouvre la fiche lorsque la carte devient prête. L'ouverture du panneau vidéo conserve son organisation responsive existante (panneau de filtres replié pendant la vidéo, restauré à sa fermeture).
+
+Vidéos prépare immédiatement un indicateur par canal, puis démarre automatiquement les canaux configurés, dans la limite des deux lecteurs existants, après libération des anciennes sessions. Cette demande remplace le démarrage manuel antérieur sur la carte. Lecture apparaît après arrêt ou pause ; en cas de refus de lecture automatique par le navigateur, Démarrer la vidéo reprend la même session ; une erreur définitive propose Réessayer. Les contrôles audio restent manuels.
+
+Un cercle animé et des textes français/anglais distinguent Connexion à la caméra, Chargement de la vidéo et Reconnexion. Le chargement reste visible pendant la préparation et la première image en attente du tampon, puis disparaît seulement à la lecture effective. Les lecteurs exposent aria-busy et un statut accessible ; animation neutralisée si réduction du mouvement demandée. Les profils de tampon, transports HLS, autorisations et temporisations serveur existants ne changent pas.
+
+Chaque canal conserve son bail et son arrêt indépendants. Un arrêt pendant la préparation annule le démarrage différé ; fermeture, changement de véhicule et événements média tardifs ne relancent pas la vidéo. Les canaux absents et comptes sans autorisation vidéo ne lancent aucune requête. Un défaut d'autorisation conserve l'état d'erreur après nettoyage du lecteur.
+
+Fichiers : google-map.js, nouveau map-video-player.mjs, google-map.css, partial dashboard-map, traductions map FR/EN ; nouveaux tests map-video-player.test.mjs et map-selection.test.mjs.
+
+Contrôles : 64 tests Node ciblés réussis (15 nouveaux, plus 49 existants : sessions, tampons, reprise, plein écran, sélection, filtres et navigation), et 16 tests PHP existants / 134 assertions (DashboardMapTest, FleetMapTest), SQLite en mémoire. Syntaxes PHP/JS et diff --check conformes. Le premier passage du test d'intégration a nécessité d'ajouter ResizeObserver au navigateur simulé ; passage final réussi. Aucun navigateur connecté (liste vide), donc pas de recette visuelle interactive ni de lecture sur caméra réelle dans ce lot. Les tests utilisent des flux et SDK simulés.
+
+Déployé le 2026-10-08T09:08:02.957312+00:00 : six fichiers applicatifs, empreintes vérifiées, vues recompilées et PHP-FPM rechargé. Sauvegarde /var/backups/cam-cam-map-live-20261008-090800.tar.gz, SHA-256 5e8c9f4877d313156fddd78506460f6a21f303aec39196d416db8b7497ed3962. Login/up et trois ressources CSS/JS HTTP 200, ressources conformes aux empreintes. Services GPS, vidéo et audio actifs, PID conservés. Aucun changement de configuration matérielle, migration ou redémarrage des listeners.
+
+Sources avant/après, tests et reçu : DASHCAM/analysis/cam-map-live-20261008/.
+
+## 8 octobre 2026 — Filtres carte visibles pendant la vidéo
+
+Précision utilisateur : le panneau Filtres carte doit rester ouvert également au lancement et pendant la vidéo, pour garder les véhicules et vitesses accessibles. Cette règle remplace le repli vidéo décrit dans le lot précédent.
+
+L'ouverture Vidéos maintient ou ouvre le panneau de filtres, sans lui transférer le focus. La fermeture vidéo ne restaure plus un ancien état replié. Le bouton de repli manuel reste utilisable. Sélection, vitesses actualisées, démarrage automatique et chargement des canaux conservés. Fichiers applicatifs : google-map.js et version du script dans dashboard-map.blade.php (cam-video-filters-20261008).
+
+Cinq tests d'intégration existants map-selection.test.mjs réussis ; le scénario vidéo vérifie désormais le maintien des filtres et des vitesses pendant le direct, ainsi que l'ouverture depuis un panneau préalablement replié et la fermeture vidéo. Syntaxe JS et diff --check conformes. Pas de nouvelle recette visuelle interactive ou matérielle ; les tests emploient un navigateur et des lecteurs simulés.
+
+Déployé le 2026-10-08T09:16:45.805768+00:00, deux fichiers vérifiés, vues recompilées. Sauvegarde /var/backups/cam-cam-video-filters-20261008-091642.tar.gz, SHA-256 f0e1d8ee121d95b30ccb6281c4b5543d12160068ef7c7dfaa0854c8603816085. Login/up et script public HTTP 200 avec empreinte conforme. GPS, vidéo et audio actifs avec PID conservés. Reçu et sources : DASHCAM/analysis/cam-video-filters-20261008/.
+
+
+## 8 octobre 2026 — Fiche Détails simplifiée, couleurs carte et notifications sonores
+
+Demande : retirer Historique GPS de la fiche EXADCAM, mettre les véhicules hors ligne en rouge et les flèches en mouvement en vert sur EXADCAM et EXAD Tracking, conserver le bleu du parking. Afficher les nouvelles alertes EXADCAM en toast et proposer un son différent de Tracking.
+
+La fiche Détails présente directement la synthèse : onglets, tableau brut GPS, date et pagination retirés. Sa requête utilise summary_only=1 et ne lit plus la table des positions. L'ancien contrat de l'endpoint reste compatible ; les données GPS et la fonction Trajets restent disponibles. Les icônes des véhicules sur carte, liste et légende partagent rouge hors ligne / flèche verte en mouvement / parking bleu. Les équipements sans caméra ou sans position conservent leur distinction.
+
+Les toasts EXADCAM utilisent les mêmes alertes réelles et les mêmes limites de flotte, d'affectation et de permission que la liste. Premier chargement silencieux ; curseurs indépendants pour alarmes montantes et pertes de contact, lots de vingt de chaque type, reprise sans avancer le curseur en cas d'erreur. Calcul des nouvelles alarmes limité aux paquets nouveaux et à leurs prédécesseurs ; compteur global cohérent avec la liste. Trois toasts visibles au maximum, file d'attente, fermeture et lien Alertes, insertion en texte. Actualisation toutes les quinze secondes sur les vues actives, accélérée pour vider un lot. Verrou Web Locks et curseur partagé entre onglets lorsqu'ils sont disponibles ; après deux minutes sans activité partagée, une nouvelle page établit une nouvelle base silencieuse. Un onglet existant conserve sa reprise en mémoire.
+
+Dans Alertes, « Activer le son des alertes » et « Tester le son ». Choix désactivé par défaut et conservé par compte dans ce navigateur. Double tintement descendant court, original et différent du tintement ascendant de Tracking ; autorisation audio déclenchée par une interaction utilisateur. Aucun son avant activation, test possible sans activer les futures alertes. Les comptes sans map.view ne chargent pas le flux ni les contrôles.
+
+Contrôles ciblés : 32 tests PHP / 299 assertions (RealDashboardTest, FleetMapTest, DashboardMapTest), SQLite en mémoire. Après optimisation de la requête, les 15 tests RealDashboardTest / 151 assertions repassés. 20 tests Node EXADCAM réussis (5 notifications/audio, 5 sélection, 10 lecteur vidéo), puis les 5 notifications repassés après nettoyage sur refus d'accès. Dix tests Node Tracking de navigation et mouvement réussis, syntaxes JS et diff --check conformes. Une collision d'identifiant de caméra synthétique a été corrigée dans le test avant le passage final. Ce ne sont pas les suites complètes.
+
+Rendu local Chrome sur données synthétiques : page Alertes avec toast à 1440 px, contrôles son à 390 px et palette des icônes des deux applications vérifiés. Synthèse audio OfflineAudioContext : pic 0,355731 et RMS 0,036917 à 44 100 Hz, sans saturation ni émission sur les haut-parleurs. Pas de session navigateur connectée ni de déclenchement d'alarme réelle pour ce lot.
+
+Déployé le 2026-10-08T14:25:33.199153+00:00 : 17 fichiers applicatifs vérifiés par empreinte, sauvegarde /var/backups/cam-cam-alerts-map-20261008-142531.tar.gz, SHA-256 ae442755c86217ef19b4dfddcad4e0f452d5920223b3aa5fd8262142ea442745. Vues recompilées, PHP-FPM rechargé. Login/up et ressources publiques HTTP 200 ; empreintes des ressources conformes. Services actifs, PID des listeners conservés. Aucune migration ni commande aux équipements. Cache de routes actualisé ; endpoint récent non authentifié vérifié HTTP 401.
+
+Sources, captures, WAV synthétique et reçus : DASHCAM/analysis/cam-alerts-map-20261008/. Voir notifications.md et google-maps.md. Les couleurs EXAD Tracking ont été livrées séparément ; ce lot concerne les plateformes web.

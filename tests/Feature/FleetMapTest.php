@@ -194,3 +194,19 @@ it('does not reveal history from before assignment and validates history inputs'
     auth()->logout();
     $this->getJson($base.'?'.http_build_query($input))->assertUnauthorized();
 });
+
+
+it('loads the details summary without fetching or displaying the GPS history', function () {
+    ($this->position)();
+    DB::enableQueryLog();
+    $this->getJson('/map/vehicles/'.$this->vehicle->id.'/details?source_id='.$this->camera->id.'&summary_only=1')
+        ->assertOk()->assertJsonPath('vehicle.id', $this->vehicle->id)->assertJsonPath('equipment.imei', $this->camera->imei)
+        ->assertJsonMissingPath('history')->assertJsonMissingPath('total');
+    expect(collect(DB::getQueryLog())->contains(fn ($q) => str_contains($q['query'], 'dashcam_positions')))->toBeFalse();
+    DB::disableQueryLog();
+    $this->get('/')->assertOk()->assertDontSee('id="tracking-history-tab"', false)
+        ->assertDontSee('id="tracking-history-date"', false)->assertSee('id="tracking-equipment-fields"', false);
+    $client = User::factory()->create(['role' => 'user', 'fleet_id' => $this->fleet->id, 'permissions' => [User::PERMISSION_MAP_VIEW]]);
+    $this->actingAs($client)->getJson('/map/vehicles/'.$this->vehicle->id.'/details?source_id='.$this->camera->id.'&summary_only=1')
+        ->assertOk()->assertJsonPath('equipment', null)->assertDontSee($this->camera->imei)->assertJsonMissingPath('history');
+});

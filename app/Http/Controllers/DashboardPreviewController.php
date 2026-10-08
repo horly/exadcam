@@ -39,6 +39,17 @@ class DashboardPreviewController extends Controller
         return response()->json($service->snapshot($request->user()));
     }
 
+    public function recentAlerts(Request $request, DashboardService $service): JsonResponse
+    {
+        $cursor = $request->validate([
+            'after_alarm' => ['required_with:after_connection_at,after_connection_id', 'integer', 'min:0'],
+            'after_connection_at' => ['required_with:after_alarm,after_connection_id', 'date_format:Y-m-d H:i:s'],
+            'after_connection_id' => ['required_with:after_alarm,after_connection_at', 'integer', 'min:0'],
+        ]);
+        return response()->json($service->recentAlerts($request->user(), $cursor))
+            ->header('Cache-Control', 'private, no-store');
+    }
+
     public function alerts(Request $request, DashboardService $service): JsonResponse
     {
         $validated = $request->validate(['page' => ['sometimes', 'integer', 'min:1', 'max:1000000']]);

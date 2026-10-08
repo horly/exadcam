@@ -48,6 +48,7 @@ Route::middleware(PreventPageCaching::class)->group(function () {
         Route::get('/server-monitoring/metrics', [ServerMonitoringController::class, 'metrics'])->middleware(['superadmin', 'throttle:40,1,server-monitoring:'])->name('server-monitoring.metrics');
         Route::get('/server-logs/content', [ServerLogController::class, 'content'])->middleware(['superadmin', 'throttle:40,1,server-logs:'])->name('server-logs.content');
         Route::get('/dashboard/data', [DashboardPreviewController::class, 'data'])->middleware('throttle:20,1,dashboard-data:')->name('dashboard.data');
+        Route::get('/dashboard/alerts/recent', [DashboardPreviewController::class, 'recentAlerts'])->middleware('throttle:30,1,dashboard-recent-alerts:')->name('dashboard.alerts.recent');
         Route::get('/dashboard/alerts', [DashboardPreviewController::class, 'alerts'])->middleware('throttle:30,1,dashboard-alerts:')->name('dashboard.alerts');
         Route::get('/map/vehicles', [MapController::class, 'vehicles'])->middleware('throttle:30,1,map-vehicles:')->name('map.vehicles');
         Route::get('/map/vehicles/{vehicle}/trips', [MapController::class, 'trips'])->whereNumber('vehicle')->middleware('throttle:20,1,map-trips:')->name('map.trips');

@@ -6,10 +6,9 @@
     if (!config.allowed) return;
     const { createMarkerTrail } = await import('./map-marker-trail.mjs?v=map-trail-2');
     const { movementPath, pointAlong, bearing, trailThroughPosition, preferredTrackingVehicle } = await import('./map-motion.mjs?v=map-anchor-1');
-    const { MapVideoChannel } = await import('./map-video.mjs?v=live-pipeline-20260924');
+    const { createMapVideoPlayer } = await import('./map-video-player.mjs?v=cam-map-live-20261008');
     const { viewportPadding, projectedCenter, observeMapView } = await import('./map-view.mjs?v=map-responsive-1');
     const { audioControls } = await import('./live-audio.mjs?v=talk-direction-20260924');
-    const {attachLivePlayer, resetLivePlayer} = await import('./live-player.mjs?v=live-pipeline-20260924');
     const {createVideoFullscreen,observeMapLayout} = await import('./map-video-fullscreen.mjs?v=map-layout-20260925');
     const { createTripHistory } = await import('./map-trip-history.mjs?v=history-design-20261005');
     const {dashboardConnection,matchesMapState,applyDashboardConnection} = await import('./map-dashboard-filter.mjs?v=map-panel-20261007');
@@ -28,7 +27,7 @@
     let infoWindow, popupVehicleId = null, popupFields = null, popupSubtitle = null, popupDot = null, videoVehicle = null, videoGeneration = 0;
     let initialFit = false, fitOnOpen = false, failures = 0, refreshDelay = 10000, searchTimer;
     const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim();
-    let mapPadding = {top:24,right:24,bottom:24,left:24}, resizeFrame = null, lastMapWidth = null;
+    let mapPadding = {top:24,right:24,bottom:24,left:24}, resizeFrame = null;
     const active = () => !document.hidden && ['overview', 'map'].includes(document.body.dataset.view);
     const date = value => value ? new Intl.DateTimeFormat(config.locale, {dateStyle:'short',timeStyle:'medium'}).format(new Date(value)) : '—';
     function icon(name) {
@@ -81,7 +80,9 @@
     function drawTrail(item) {
         item.trail.setPath(showTrails.checked ? trailThroughPosition(item.vehicle,item.displayed,item.path) : [], item.displayed);
     }
+    let keepResultsVisible = false, pendingPopupId = null;
     function choose(id, center = true, popup = false) {
+        keepResultsVisible = id !== null; pendingPopupId = null;
         if (selectedId !== id) void closeVideo();
         selectedId = id;
         if (id !== null) { element('tracking-show-all').checked = false; follow.checked = true; }
@@ -89,11 +90,12 @@
         render(false);
         const vehicle = vehicles.find(item => item.id === id);
         if (center && map && vehicle?.position) {
-            const panel = element('tracking-panel').getBoundingClientRect(), area = canvas.getBoundingClientRect();
-            if (!workspace.classList.contains('panel-collapsed') && area.right - panel.right < 280) togglePanel(true);
             fitFleet();
         }
-        if (popup && vehicle?.position) openPopup(vehicle);
+        if (popup && vehicle?.position) {
+            if (map && infoWindow) openPopup(vehicle);
+            else pendingPopupId = id;
+        }
     }
     function glyph(vehicle) {
         const symbol = document.createElement('span'); symbol.className = 'tracking-glyph';
@@ -108,7 +110,7 @@
             const dot = document.createElement('i'), status = document.createElement('span');
             button.type = 'button'; button.className = 'tracking-vehicle'; symbol.className = 'vehicle-symbol'; copy.className = 'vehicle-copy';
             symbol.append(glyph(vehicle)); state.className = 'vehicle-state'; state.append(dot,status); copy.append(name,subtitle,state); button.append(symbol,copy);
-            button.addEventListener('click', () => choose(vehicle.id));
+            button.addEventListener('click', () => choose(vehicle.id,true,true));
             row = {button,name,subtitle,dot,status,symbol}; rows.set(vehicle.id,row);
         }
         row.symbol.replaceChildren(glyph(vehicle));
@@ -144,6 +146,8 @@
         popupFields.lastElementChild.title = date(vehicle.last_seen_at);
     }
     function openPopup(vehicle) {
+        if (!map || !infoWindow || !vehicle?.position) return;
+        pendingPopupId = null;
         const content = document.createElement('div'); content.className = 'tracking-popup';
         const header = document.createElement('header'), identity = document.createElement('div');
         const title = document.createElement('strong'); title.textContent = vehicle.name;
@@ -208,7 +212,7 @@
     function render(animate = false) {
         const matches = filtered(), ids = new Set(matches.map(vehicle => vehicle.id));
         document.querySelectorAll('[data-tracking-status]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.trackingStatus === stateFilter.value)));
-        element('tracking-results').hidden = !element('tracking-show-all').checked && !element('tracking-search').value.trim() && !['online','offline'].includes(stateFilter.value);
+        element('tracking-results').hidden = !keepResultsVisible && !element('tracking-show-all').checked && !element('tracking-search').value.trim() && !['online','offline'].includes(stateFilter.value);
         if (selectedId !== null && !ids.has(selectedId)) { selectedId = null; void closeVideo(); }
         const automaticFocus = selectedId === null && follow.checked && !element('tracking-show-all').checked
             ? preferredTrackingVehicle(matches) : null;
@@ -284,6 +288,10 @@
         infoWindow = new google.maps.InfoWindow({maxWidth:350,headerDisabled:true});
         infoWindow.addListener('close',() => { popupVehicleId = null; });
         mapMessage.hidden = true; render();
+        if (pendingPopupId === selectedId) {
+            const requested = vehicles.find(vehicle => vehicle.id === pendingPopupId);
+            if (requested?.position) openPopup(requested);
+        }
     }
     function schedule() {
         clearTimeout(timer);
@@ -355,7 +363,7 @@
     element('tracking-close-panel').addEventListener('click',() => togglePanel(true));
     element('tracking-refresh').addEventListener('click',refresh);
     element('tracking-fit').addEventListener('click',() => { if (!element('tracking-show-all').checked) follow.checked = true; render(); fitFleet(); });
-    element('tracking-show-all').addEventListener('change',() => { if (!element('tracking-show-all').checked) selectedId = null; infoWindow?.close(); popupVehicleId = null; render(); fitFleet(); });
+    element('tracking-show-all').addEventListener('change',() => { keepResultsVisible = false; if (!element('tracking-show-all').checked) selectedId = null; infoWindow?.close(); popupVehicleId = null; render(); fitFleet(); });
     fleetFilter?.addEventListener('change',() => { updateFilters(); render(); fitFleet(); });
     departmentFilter.addEventListener('change',() => { render(); fitFleet(); });
     stateFilter.addEventListener('change',() => { render(); fitFleet(); });
@@ -435,77 +443,30 @@
 
     const historyModal = element('tracking-history-modal');
     document.body.append(historyModal);
-    let historyVehicle = null, historyPage = 1, historyRequest = null;
-    const localDay = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-    element('tracking-history-date').max = localDay();
+    let historyRequest = null;
     async function openHistory(vehicle) {
-        historyVehicle = vehicle; historyPage = 1; element('tracking-history-date').value = localDay();
+        historyRequest?.abort();
+        const current = historyRequest = new AbortController();
         element('tracking-history-title').textContent = labels.equipment_details;
-        bootstrap.Tab.getOrCreateInstance(element('tracking-summary-tab')).show();
         element('tracking-equipment-fields').replaceChildren();
-        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
-        bootstrap.Modal.getOrCreateInstance(historyModal).show();
-        void loadHistory();
-    }
-    function renderHistoryPagination(result) {
-        historyPage = result.page;
-        const format = value => new Intl.NumberFormat(config.locale).format(value);
-        element('tracking-history-summary').textContent = labels.history_range
-            .replace(':from',format(result.from ?? 0)).replace(':to',format(result.to ?? 0)).replace(':total',format(result.total));
-        const pages = element('tracking-history-pages'); pages.replaceChildren();
-        const last = result.last_page;
-        const visible = new Set([1,last]);
-        const start = Math.max(1,Math.min(result.page - 1,last - 4));
-        const end = Math.min(last,Math.max(result.page + 1,5));
-        for (let number = start; number <= end; number++) visible.add(number);
-        let previous = 0;
-        for (const number of [...visible].sort((a,b) => a-b)) {
-            if (previous && number - previous > 1) {
-                const gap = document.createElement('span'); gap.className = 'tracking-page-gap'; gap.textContent = '…'; gap.setAttribute('aria-hidden','true'); pages.append(gap);
-            }
-            const button = document.createElement('button'); button.type = 'button'; button.className = 'tracking-page-button';
-            button.textContent = format(number); button.setAttribute('aria-label',`${labels.page} ${format(number)}`);
-            if (number === result.page) button.setAttribute('aria-current','page');
-            button.addEventListener('click',() => { if (number !== historyPage) { historyPage = number; void loadHistory(); } });
-            pages.append(button); previous = number;
-        }
-        element('tracking-history-prev').disabled = result.page <= 1;
-        element('tracking-history-next').disabled = !result.has_more;
-    }
-
-    async function loadHistory() {
-        historyRequest?.abort(); historyRequest = new AbortController();
-        const current = historyRequest, selected = historyVehicle;
-        const dateInput = element('tracking-history-date'), message = element('tracking-history-message');
-        const rows = element('tracking-history-rows'); rows.replaceChildren();
-        element('tracking-history-prev').disabled = true; element('tracking-history-next').disabled = true;
-        element('tracking-history-pages').replaceChildren();
-        element('tracking-history-summary').textContent = '';
-        if (!dateInput.value || !dateInput.validity.valid) { message.textContent = labels.date_invalid; return; }
+        const message = element('tracking-history-message');
         message.textContent = labels.history_loading;
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        if (current !== historyRequest) return;
+        bootstrap.Modal.getOrCreateInstance(historyModal).show();
         const timeout = setTimeout(() => current.abort(),15000);
         try {
-            const params = new URLSearchParams({source_id:selected.source_id,date:dateInput.value,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',page:historyPage});
-            const response = await fetch(`${selected.details_url}?${params}`,{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-store',signal:current.signal});
+            const params = new URLSearchParams({source_id:vehicle.source_id,summary_only:'1'});
+            const response = await fetch(vehicle.details_url+'?'+params,{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-store',signal:current.signal});
             if (!response.ok) throw Error('unavailable');
-            const result = await response.json(); if (current !== historyRequest) return;
-            renderEquipment(result,selected);
-            rows.replaceChildren(...result.history.map(point => {
-                const row = document.createElement('tr');
-                [date(point.at),labels[point.state],point.speed+' '+labels.kmh,point.ignition ? labels.ignition_on : labels.ignition_off,`${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}`].forEach(value => {
-                    const cell = document.createElement('td'); cell.textContent = value; row.append(cell);
-                }); return row;
-            }));
+            const result = await response.json();
+            if (current !== historyRequest) return;
+            renderEquipment(result,vehicle);
             message.textContent = '';
-            if (!result.history.length) { const row = document.createElement('tr'), cell = document.createElement('td'); cell.colSpan = 5; cell.textContent = labels.history_empty; row.append(cell); rows.append(row); }
-            renderHistoryPagination(result);
         } catch { if (current === historyRequest) { message.textContent = labels.history_failed; element('tracking-equipment-fields').replaceChildren(); } }
         finally { clearTimeout(timeout); }
     }
     historyModal.addEventListener('hidden.bs.modal',() => { historyRequest?.abort(); historyRequest = null; });
-    element('tracking-history-date').addEventListener('change',() => { historyPage = 1; void loadHistory(); });
-    element('tracking-history-prev').addEventListener('click',() => { historyPage = Math.max(1,historyPage-1); void loadHistory(); });
-    element('tracking-history-next').addEventListener('click',() => { historyPage++; void loadHistory(); });
 
     async function videoRequest(url, data, keepalive = false) {
         const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 15000);
@@ -518,40 +479,10 @@
             return await response.json();
         } finally { clearTimeout(timeout); }
     }
-    const videoPlayers = [...document.querySelectorAll('[data-map-channel]')].map(section => {
-        const player = section.querySelector('video'), startButton = section.querySelector('[data-video-start]'), stopButton = section.querySelector('[data-video-stop]');
-        const placeholder = section.querySelector('.tracking-video-placeholder'), status = section.querySelector('[data-video-status]');
-        let playback = null, manualPaused = false;
-        const channel = Number(section.dataset.mapChannel);
-        const session = new MapVideoChannel({request:videoRequest,
-            reset({preserveFrame = false} = {}) {
-                const still = resetLivePlayer(player, playback, {preserveFrame}); playback = null;
-                if (!preserveFrame) manualPaused = false;
-                placeholder.hidden = still; startButton.hidden = preserveFrame;
-                startButton.disabled = !videoVehicle || channel > videoVehicle.equipment.channels;
-                stopButton.hidden = !preserveFrame;
-            },
-            notify(state, error) { status.textContent = state === 'failed' ? (error?.message || labels.video_failed) : labels['video_'+state]; startButton.disabled = state !== 'failed'; stopButton.hidden = state === 'failed'; startButton.hidden = state !== 'failed'; },
-            attach(url,onError,options) {
-                playback = attachLivePlayer(player, url, {...options,
-                    shouldPlay: () => !manualPaused,
-                    onState(state) {
-                        if (state === 'paused' && !document.hidden) manualPaused = true;
-                        if (state === 'ready') { manualPaused = false; session.markPlaying(); }
-                        if (['preview','ready','paused','play_required'].includes(state)) placeholder.hidden = true;
-                        if (state !== 'buffering' && state !== 'preview') status.textContent = labels['video_'+state];
-                    }, onError,
-                });
-            }
-        });
-        startButton.addEventListener('click',() => {
-            if (!videoVehicle?.equipment || !config.canVideo || channel > videoVehicle.equipment.channels) return;
-            void session.start(`${config.videoUrl}/${videoVehicle.equipment.id}/live`,channel);
-        });
-        stopButton.addEventListener('click',() => { void session.stop(); status.textContent = labels.video_idle; });
-        return {session,startButton,status,channel,resume() { if (session.active) { void session.resume(); playback?.resume(); } }};
-    });
-    let panelBeforeVideo = false;
+    const videoPlayers = [...document.querySelectorAll('[data-map-channel]')].map(section => createMapVideoPlayer({
+        section, labels, request:videoRequest, getVehicle:() => videoVehicle,
+        canVideo:config.canVideo, baseUrl:config.videoUrl,
+    }));
     const videoFullscreen=createVideoFullscreen({panel:element('tracking-video-panel'),button:element('tracking-video-fullscreen'),onChange:resizeMap});
     const stopLayoutObserver=observeMapLayout(workspace);
     window.addEventListener('pagehide',stopLayoutObserver,{once:true});
@@ -560,9 +491,6 @@
         resizeFrame = requestAnimationFrame(() => {
             resizeFrame = null;
             if (!active() || !canvas.clientWidth || !canvas.clientHeight) return;
-            const area = canvas.getBoundingClientRect(), panel = element('tracking-panel').getBoundingClientRect();
-            if (area.width !== lastMapWidth && selectedId !== null && !workspace.classList.contains('panel-collapsed') && area.right - panel.right < 280) togglePanel(true,false);
-            lastMapWidth = area.width;
             google.maps.event.trigger(map,'resize'); measureViewport();
             if (fitOnOpen) { fitOnOpen = false; fitFleet(); }
             else recenterSelection();
@@ -573,19 +501,17 @@
         const leavingFullscreen=videoFullscreen.close({restoreFocus:false});
         const wasOpen = !!videoVehicle; videoVehicle = null;
         element('tracking-video-panel').hidden = true; workspace.classList.remove('has-video');
-        const stops = [leavingFullscreen,...videoPlayers.map(({session}) => session.stop(keepalive)),vehicleAudio.select(null,keepalive)];
-        if (wasOpen) { workspace.classList.toggle('panel-collapsed',panelBeforeVideo); resizeMap(); }
+        const stops = [leavingFullscreen,...videoPlayers.map(player => player.stop(keepalive)),vehicleAudio.select(null,keepalive)];
+        if (wasOpen) resizeMap();
         await Promise.allSettled(stops);
     }
     async function openVideo(vehicle) {
         if (!config.canVideo || !vehicle.equipment) return;
         const stopping = closeVideo(), opening = videoGeneration;
-        await stopping;
-        if (opening !== videoGeneration || document.body.dataset.view !== 'map' || selectedId !== vehicle.id) return;
-        // The opening itself does not start either camera channel.
-        videoVehicle = vehicle; panelBeforeVideo = workspace.classList.contains('panel-collapsed');
-        void vehicleAudio.select(vehicle.equipment.id);
-        workspace.classList.add('panel-collapsed','has-video');
+        // Show loading immediately, including while the previous leases are released.
+        videoVehicle = vehicle;
+        workspace.classList.add('has-video');
+        togglePanel(false,false);
         if (document.body.dataset.view !== 'map') location.hash = 'map';
         element('tracking-video-title').textContent = vehicle.name;
         element('tracking-video-subtitle').textContent = [vehicle.equipment.model,vehicle.equipment.imei].filter(Boolean).join(' · ');
@@ -593,9 +519,13 @@
         element('tracking-video-panel').dataset.channelCount = String(Math.min(2,vehicle.equipment.channels));
         document.querySelectorAll('[data-map-channel]').forEach(section=>{section.dataset.available=String(Number(section.dataset.mapChannel)<=vehicle.equipment.channels);});
         element('tracking-video-panel').hidden = false;
-        videoPlayers.forEach(({startButton,status,channel}) => { startButton.disabled = channel > vehicle.equipment.channels; status.textContent = labels[channel > vehicle.equipment.channels ? 'video_missing' : 'video_idle']; });
+        videoPlayers.forEach(player => player.prepare());
         infoWindow?.close(); popupVehicleId = null; resizeMap();
         element('tracking-video-close').focus({preventScroll:true});
+        await stopping;
+        if (opening !== videoGeneration || document.body.dataset.view !== 'map' || selectedId !== vehicle.id) return;
+        void vehicleAudio.select(vehicle.equipment.id);
+        videoPlayers.forEach(player => { void player.startPrepared(); });
     }
     element('tracking-video-close').addEventListener('click',() => { void closeVideo(); });
     window.addEventListener('pagehide',() => { void closeVideo(true); });

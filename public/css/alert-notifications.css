@@ -1,0 +1,17 @@
+.cam-alert-sound-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; padding:14px 20px; border-top:1px solid #e4ebf5; border-bottom:1px solid #e4ebf5; background:#f8faff; color:#203d65; }
+.cam-alert-sound-controls .form-check { display:flex; align-items:center; gap:9px; padding:0; margin:0; font-size:12px; font-weight:700; }
+.cam-alert-sound-controls .form-check-input { margin:0; flex-shrink:0; cursor:pointer; }
+.cam-alert-sound-controls .form-check-input:checked { background-color:#203d65; border-color:#203d65; }
+.cam-alert-sound-controls .btn { border:1px solid #d3e0f0; color:#203d65; background:#fff; border-radius:9px; font-size:11px; }
+.cam-alert-sound-controls small { flex-basis:100%; color:#6b819e; font-size:11px; }
+.cam-alert-toasts { position:fixed; top:100px; right:20px; width:min(370px,calc(100vw - 28px)); z-index:1090; pointer-events:none; }
+.cam-alert-toast { pointer-events:auto; width:100%; margin-bottom:12px; border:1px solid #d3e0f0; border-left:4px solid #203d65; border-radius:14px; background:#fff; color:#203d65; box-shadow:0 10px 35px #203d6530; overflow:hidden; font-family:Manrope,sans-serif; }
+.cam-alert-toast .toast-header { gap:10px; padding:12px 14px; background:#f4f7fc; color:#203d65; }
+.cam-alert-toast .toast-header strong { flex:1; font-size:12px; overflow-wrap:anywhere; }
+.cam-alert-toast-icon { display:grid; place-items:center; width:25px; height:25px; border-radius:8px; background:#fff0db; color:#b57620; font-weight:800; }
+.cam-alert-toast .toast-body { padding:14px; font-size:12px; overflow-wrap:anywhere; }
+.cam-alert-toast .toast-body > strong { display:block; }
+.cam-alert-toast p { margin:7px 0; font-size:11px; color:#637b99; }
+.cam-alert-toast time { display:block; color:#637b99; font-size:10px; }
+.cam-alert-toast-link { display:inline-block; margin-top:10px; color:#203d65; font-weight:700; }
+@media (max-width:575.98px) { .cam-alert-toasts { top:85px; right:14px; } }

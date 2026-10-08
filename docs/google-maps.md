@@ -527,3 +527,40 @@ Contrôles exécutés : 16 tests PHP / 134 assertions (DashboardMapTest et Fleet
 Déployé le 2026-10-07T08:12:27.996261+00:00 : cinq fichiers applicatifs avec empreintes avant/après vérifiées. Sauvegarde /var/backups/cam-map-overlay-20261007-081225.tar.gz, SHA-256 34e66341cbe7aa2a09076e8c0ac0769f2ff069e9b43ae8674e11d57edda0cb12. Vues recompilées, PHP-FPM rechargé. Login, santé et ressources CSS/JS HTTP 200, empreintes des ressources conformes. Services actifs et PID des listeners conservés. Aucune migration ni commande aux équipements.
 
 Reçus et sources avant/après : DASHCAM/analysis/map-overlay-20261007/. Même correction livrée sur EXAD Tracking web.
+
+## 8 octobre 2026 — Sélection visible et démarrage vidéo depuis la carte
+
+Demande : conserver la liste après sélection pour lire les vitesses, ouvrir automatiquement la fiche et lancer les vidéos au clic sur Vidéos. Afficher clairement le chargement ; réserver Lecture à la reprise après arrêt.
+
+La sélection d'une ligne garde tous les résultats filtrés et le panneau visibles, centre le véhicule et ouvre sa fiche. Liste et fiche continuent d'actualiser les vitesses. Le panneau ne se replie plus automatiquement lors de cette sélection ou d'un redimensionnement. Une sélection pendant le chargement du SDK ouvre la fiche lorsque la carte devient prête. L'ouverture du panneau vidéo conserve son organisation responsive existante (panneau de filtres replié pendant la vidéo, restauré à sa fermeture).
+
+Vidéos prépare immédiatement un indicateur par canal, puis démarre automatiquement les canaux configurés, dans la limite des deux lecteurs existants, après libération des anciennes sessions. Cette demande remplace le démarrage manuel antérieur sur la carte. Lecture apparaît après arrêt ou pause ; en cas de refus de lecture automatique par le navigateur, Démarrer la vidéo reprend la même session ; une erreur définitive propose Réessayer. Les contrôles audio restent manuels.
+
+Un cercle animé et des textes français/anglais distinguent Connexion à la caméra, Chargement de la vidéo et Reconnexion. Le chargement reste visible pendant la préparation et la première image en attente du tampon, puis disparaît seulement à la lecture effective. Les lecteurs exposent aria-busy et un statut accessible ; animation neutralisée si réduction du mouvement demandée. Les profils de tampon, transports HLS, autorisations et temporisations serveur existants ne changent pas.
+
+Chaque canal conserve son bail et son arrêt indépendants. Un arrêt pendant la préparation annule le démarrage différé ; fermeture, changement de véhicule et événements média tardifs ne relancent pas la vidéo. Les canaux absents et comptes sans autorisation vidéo ne lancent aucune requête. Un défaut d'autorisation conserve l'état d'erreur après nettoyage du lecteur.
+
+Fichiers : google-map.js, nouveau map-video-player.mjs, google-map.css, partial dashboard-map, traductions map FR/EN ; nouveaux tests map-video-player.test.mjs et map-selection.test.mjs.
+
+Contrôles : 64 tests Node ciblés réussis (15 nouveaux, plus 49 existants : sessions, tampons, reprise, plein écran, sélection, filtres et navigation), et 16 tests PHP existants / 134 assertions (DashboardMapTest, FleetMapTest), SQLite en mémoire. Syntaxes PHP/JS et diff --check conformes. Le premier passage du test d'intégration a nécessité d'ajouter ResizeObserver au navigateur simulé ; passage final réussi. Aucun navigateur connecté (liste vide), donc pas de recette visuelle interactive ni de lecture sur caméra réelle dans ce lot. Les tests utilisent des flux et SDK simulés.
+
+Déployé le 2026-10-08T09:08:02.957312+00:00 : six fichiers applicatifs, empreintes vérifiées, vues recompilées et PHP-FPM rechargé. Sauvegarde /var/backups/cam-cam-map-live-20261008-090800.tar.gz, SHA-256 5e8c9f4877d313156fddd78506460f6a21f303aec39196d416db8b7497ed3962. Login/up et trois ressources CSS/JS HTTP 200, ressources conformes aux empreintes. Services GPS, vidéo et audio actifs, PID conservés. Aucun changement de configuration matérielle, migration ou redémarrage des listeners.
+
+Sources avant/après, tests et reçu : DASHCAM/analysis/cam-map-live-20261008/.
+
+## 8 octobre 2026 — Filtres carte visibles pendant la vidéo
+
+Précision utilisateur : le panneau Filtres carte doit rester ouvert également au lancement et pendant la vidéo, pour garder les véhicules et vitesses accessibles. Cette règle remplace le repli vidéo décrit dans le lot précédent.
+
+L'ouverture Vidéos maintient ou ouvre le panneau de filtres, sans lui transférer le focus. La fermeture vidéo ne restaure plus un ancien état replié. Le bouton de repli manuel reste utilisable. Sélection, vitesses actualisées, démarrage automatique et chargement des canaux conservés. Fichiers applicatifs : google-map.js et version du script dans dashboard-map.blade.php (cam-video-filters-20261008).
+
+Cinq tests d'intégration existants map-selection.test.mjs réussis ; le scénario vidéo vérifie désormais le maintien des filtres et des vitesses pendant le direct, ainsi que l'ouverture depuis un panneau préalablement replié et la fermeture vidéo. Syntaxe JS et diff --check conformes. Pas de nouvelle recette visuelle interactive ou matérielle ; les tests emploient un navigateur et des lecteurs simulés.
+
+Déployé le 2026-10-08T09:16:45.805768+00:00, deux fichiers vérifiés, vues recompilées. Sauvegarde /var/backups/cam-cam-video-filters-20261008-091642.tar.gz, SHA-256 f0e1d8ee121d95b30ccb6281c4b5543d12160068ef7c7dfaa0854c8603816085. Login/up et script public HTTP 200 avec empreinte conforme. GPS, vidéo et audio actifs avec PID conservés. Reçu et sources : DASHCAM/analysis/cam-video-filters-20261008/.
+
+
+## Mise à jour du 8 octobre 2026 — Détails et états
+
+Déployé : la fiche Détails ouvre directement la synthèse. L'onglet Historique GPS, sa date, sa table et sa pagination ne sont plus affichés. Le navigateur demande /map/vehicles/{vehicle}/details?source_id=…&summary_only=1 ; ce mode omet history et les métadonnées de pagination et n'interroge pas dashcam_positions. Les contrôles de flotte/source et la projection technique réservée au superadmin restent appliqués. Le contrat historique sans summary_only reste compatible ; Trajets n'est pas retiré.
+
+Icônes carte, résultats et légende : moving #10b981 (flèche), offline #ef4444 (cercle), parking bleu existant #229bd8. Les autres états restent distincts. Les étiquettes de marqueur suivent le vert/rouge de déplacement/connexion ; les points de connexion hors ligne sont rouges. Versions des ressources : cam-alerts-map-20261008. Sélection, filtres, vidéos automatiques et chronologie des trajets conservés. Voir project-history.md pour les tests et le reçu de déploiement.
